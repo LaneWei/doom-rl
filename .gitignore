@@ -102,3 +102,12 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+**/_vizdoom/
+**/_vizdoom.ini
+
+# ignore weights files
+**/weights
+
+# ignore doom wad files
+**/*.wad
