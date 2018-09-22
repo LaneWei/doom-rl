@@ -110,5 +110,3 @@ venv.bak/
 # ignore weights files
 **/weights
 
-# ignore doom wad files
-**/*.wad
