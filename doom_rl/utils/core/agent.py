@@ -1,17 +1,29 @@
+from doom_rl.utils.core.memory import Memory
+from doom_rl.utils.core.model import Model
+
 
 class Agent:
     """
     Base class for implementing different agents.
 
+    You need to implement the following method:
+        * `learn_from_memory`
+
     # Argument
         * `create_model` A function that takes no parameter and return a model (`Model` instance).
+        * `memory` Agent's memory (`Memory` instance).
+        * `learning_rate` The learning rate that will be applied to the learning process.
+        * `discount_factor` The discount factor that will be applied to the learning process.
     """
 
-    def __init__(self, create_model):
-        self.Model = create_model()
+    def __init__(self, create_model, memory, learning_rate=1e-5, discount_factor=0.95):
+        self._model = create_model()
+        self._memory = memory
+        self._lr = None
+        self._gamma = None
 
-        self._lr = 1e-5
-        self._gamma = 0.95
+        self.learning_rate = learning_rate
+        self.discount_factor = discount_factor
 
     def get_action(self, state):
         """
@@ -20,7 +32,8 @@ class Agent:
         :param state: The current state.
         :return: The action according to this agent's model.
         """
-        pass
+
+        return self.model.get_best_action(state)
 
     def learn_from_memory(self, batch_size):
         """
@@ -42,7 +55,20 @@ class Agent:
         :param terminate: The terminate flag.
         :return: True, if the experience is saved to this agent's memory successfully.
         """
-        pass
+
+        return self.memory.add(s, a, r, s_, terminate)
+
+    @property
+    def model(self):
+        if not isinstance(self._model, Model):
+            raise ValueError('The model should be an instance of utils.core.model.Model')
+        return self._model
+
+    @property
+    def memory(self):
+        if not isinstance(self._memory, Memory):
+            raise ValueError('The memory should be an instance of utils.core.memory.Memory')
+        return self._memory
 
     @property
     def learning_rate(self):

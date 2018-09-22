@@ -1,7 +1,9 @@
 from collections import namedtuple
 from random import sample
+from warnings import warn
+import numpy as np
 
-# An agent's experience is a tuple representing the transition of `current state`, `taken action`,
+# An agent's experience is a 5-tuple representing the transition of `current state`, `taken action`,
 # `received reward`, `next state`, and `terminate flag`.
 Experience = namedtuple('Experience', ['state', 'action', 'reward', 'next_state', 'terminate'])
 
@@ -48,8 +50,8 @@ class Memory:
         Returns randomly selected `experience` batch.
 
         :param batch_size: The expected size of `experience` batch.
-        :return: A tuple of five lists, containing elements of s, a, r, s_, terminate respectively,
-        in which each of the lists has a size of max(self.size, batch_size).
+        :return: A 5-tuple, containing s, a, r, s_, terminate elements respectively in five numpy ndarrays,
+        in which each of the numpy ndarray has a size of max(memory.size, batch_size).
         """
         pass
 
@@ -62,6 +64,11 @@ class ListMemory(Memory):
         self._index = 0
 
     def add(self, s, a, r, s_, done):
+        if s.shape != self.state_shape or s_.shape != self.state_shape:
+            warn('The shape {} of input states does not match the required shape {} of '
+                 'this memory'.format(s.shape if s.shape != self.state_shape else s_.shape, self.state_shape))
+            return False
+
         exp = Experience(s, a, r, s_, done)
 
         if self.size < self.capacity:
@@ -69,6 +76,7 @@ class ListMemory(Memory):
         else:
             self._storage[self._index] = exp
         self._index = (self._index + 1) % self.capacity
+        return True
 
     def sample(self, batch_size):
         if batch_size > self.size:
@@ -76,13 +84,14 @@ class ListMemory(Memory):
         else:
             samples = sample(self._storage, batch_size)
 
+        assert len(samples) == max(self.size, batch_size)
         states = [x.state for x in samples]
         actions = [x.action for x in samples]
         rewards = [x.reward for x in samples]
         next_states = [x.next_state for x in samples]
-        d = [x.terminate for x in samples]
+        terminates = [x.terminate for x in samples]
 
-        return states, actions, rewards, next_states, d
+        return np.array(states), np.array(actions), np.array(rewards), np.array(next_states), np.array(terminates)
 
     @property
     def size(self):
