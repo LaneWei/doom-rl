@@ -17,14 +17,15 @@ class Memory:
         * `sample`
 
     # Arguments
-        * `state_shape` A tuple that specifies the shape of states which are stored in this memory.
+        * `state_shape` A tuple that specifies the shape of states which are stored in this memory. If none,
+        this argument is ignored.
         * `capacity` A non-negative integer that specifies the maximum size of this memory.
 
     # Property
         * `size` An integer which indicates how many 'experiences' are currently stored in this memory.
     """
 
-    def __init__(self, state_shape, capacity=10000):
+    def __init__(self, capacity, state_shape=None):
         self.state_shape = state_shape
         self.capacity = capacity
 
@@ -57,17 +58,17 @@ class Memory:
 
 
 class ListMemory(Memory):
-    def __init__(self, state_shape, **kwargs):
-        super(ListMemory, self).__init__(state_shape, **kwargs)
+    def __init__(self, capacity, **kwargs):
+        super(ListMemory, self).__init__(capacity, **kwargs)
 
         self._storage = []
         self._index = 0
 
     def add(self, s, a, r, s_, done):
-        if s.shape != self.state_shape or s_.shape != self.state_shape:
-            warn('The shape {} of input states does not match the required shape {} of '
-                 'this memory'.format(s.shape if s.shape != self.state_shape else s_.shape, self.state_shape))
-            return False
+        # if not self.state_shape and s.shape != self.state_shape or s_.shape != self.state_shape:
+        #    warn('The shape {} of input states does not match the required shape {} of '
+        #         'this memory'.format(s.shape if s.shape != self.state_shape else s_.shape, self.state_shape))
+        #    return False
 
         exp = Experience(s, a, r, s_, done)
 
@@ -84,7 +85,7 @@ class ListMemory(Memory):
         else:
             samples = sample(self._storage, batch_size)
 
-        assert len(samples) == max(self.size, batch_size)
+        assert len(samples) == min(self.size, batch_size)
         states = [x.state for x in samples]
         actions = [x.action for x in samples]
         rewards = [x.reward for x in samples]
