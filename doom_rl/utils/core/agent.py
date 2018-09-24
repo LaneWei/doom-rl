@@ -10,15 +10,18 @@ class Agent:
         * `learn_from_memory`
 
     # Argument
-        * `create_model` A function that takes no parameter and return a model (`Model` instance).
+        * `model` An nn model. (`Model` instance).
         * `memory` Agent's memory (`Memory` instance).
+        * `actions' A set or list of actions that this agent can take.
+        * `policy` ...
         * `learning_rate` The learning rate that will be applied to the learning process.
         * `discount_factor` The discount factor that will be applied to the learning process.
     """
 
-    def __init__(self, create_model, memory, learning_rate=1e-5, discount_factor=0.95):
-        self._model = create_model()
+    def __init__(self, model, memory, actions, learning_rate=1e-5, discount_factor=0.95):
+        self._model = model
         self._memory = memory
+        self._actions = actions
         self._lr = None
         self._gamma = None
 
@@ -69,6 +72,14 @@ class Agent:
         if not isinstance(self._memory, Memory):
             raise ValueError('The memory should be an instance of utils.core.memory.Memory')
         return self._memory
+
+    @property
+    def actions(self):
+        return self._actions
+
+    @property
+    def action_size(self):
+        return len(self._actions)
 
     @property
     def learning_rate(self):

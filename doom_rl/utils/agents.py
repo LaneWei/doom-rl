@@ -6,8 +6,8 @@ class DQNAgent(Agent):
     """
         Agent implemented with q-learning algorithm.
     """
-    def __init__(self, create_model, memory, **kwargs):
-        super(DQNAgent, self).__init__(create_model, memory, **kwargs)
+    def __init__(self, model, memory, actions, **kwargs):
+        super(DQNAgent, self).__init__(model, memory, actions, **kwargs)
 
     def learn_from_memory(self, batch_size):
         states, actions, rewards, next_states, terminates = self.memory.sample(batch_size)
@@ -20,8 +20,8 @@ class ESARSAAgent(Agent):
     """
     Agent implemented with expected sarsa algorithm.
     """
-    def __init__(self, create_model, memory, epsilon=0, **kwargs):
-        super(ESARSAAgent, self).__init__(create_model, memory, **kwargs)
+    def __init__(self, model, memory, actions, epsilon=0, **kwargs):
+        super(ESARSAAgent, self).__init__(model, memory, actions, **kwargs)
         self.epsilon = epsilon
 
     def learn_from_memory(self, batch_size):

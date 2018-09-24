@@ -84,8 +84,8 @@ class DQNTfModel(Model):
     You can easily extend this class by just implementing `_build_network()` method in your subclass.
 
     # Arguments:
-        * `state_shape` The shape of input states.
-        * `nb_actions` The number of actions that the agent can perform.
+        * `state_shape` The shape of input states. (to be modified)
+        * `nb_actions` The number of actions that the agent can perform. (to be modified)
         * `preprocess_state_batch` A function that takes a batch of states as input,
         then perform pre-processing on the batch of states and return the processed batch.
     """
@@ -165,6 +165,15 @@ class DQNTfModel(Model):
         3. Argument `learning_rate` can be used for constructing self._optimizer.
         """
         pass
+
+    def compile(self, input_shape, output_shape, learning_rate):
+        """
+        To be added.
+        :param input_shape: input_shape
+        :param output_shape: output_shape
+        :param learning_rate: learning_rate
+        """
+        raise NotImplementedError()
 
     @property
     def session(self):
