@@ -16,13 +16,13 @@ class Memory:
         * `add`
         * `sample`
 
-    # Arguments
-        * `state_shape` A tuple that specifies the shape of states which are stored in this memory. If none,
+    Args:
+        capacity: A non-negative integer that specifies the maximum size of this memory.
+        state_shape: A tuple that specifies the shape of states which are stored in this memory. If none,
         this argument is ignored.
-        * `capacity` A non-negative integer that specifies the maximum size of this memory.
 
-    # Property
-        * `size` An integer which indicates how many 'experiences' are currently stored in this memory.
+    Properties:
+        size: An integer which indicates how many 'experiences' are currently stored in this memory.
     """
 
     def __init__(self, capacity, state_shape=None):
@@ -35,14 +35,17 @@ class Memory:
         If the size of this memory reaches its capacity, the 'experience' to be added will take the
         place of one of the former (oldest or whatever) 'experience' in this memory.
 
-        :param s: Current state. If the shape of s can not match self.state_shape, this method should
-        fail in some way (return False, throwing an error, etc.)
-        :param a: Taken action.
-        :param r: Received reward.
-        :param s_: Next state. If the shape of s can not match self.state_shape, this method should
-        fail in some way (return False, throwing an error, etc.)
-        :param terminate: Terminate flag.
-        :return: True if s, a, r, s_, terminate are saved as an experience and added to this memory
+        Args:
+            s: Current state (`numpy.ndarray` instance). If the shape of s can not match self.state_shape,
+            this method should fail in some way (return False, throwing an error, etc.).
+            a: Action.
+            r: Reward.
+            s_: Next state (`numpy.ndarray` instance). If the shape of s can not match self.state_shape,
+            this method should fail in some way (return False, throwing an error, etc.).
+            terminate: Terminate flag.
+
+        Returns:
+            True, if s, a, r, s_, terminate are saved as an experience and added to this memory.
         """
         pass
 
@@ -50,9 +53,12 @@ class Memory:
         """
         Returns randomly selected `experience` batch.
 
-        :param batch_size: The expected size of `experience` batch.
-        :return: A 5-tuple, containing s, a, r, s_, terminate elements respectively in five numpy ndarrays,
-        in which each of the numpy ndarray has a size of max(memory.size, batch_size).
+        Args:
+            batch_size: The expected size of `experience` batch.
+
+        Returns:
+            A 5-tuple, containing s, a, r, s_, terminate elements respectively in five numpy ndarrays,
+        in which each of the `numpy.ndarray` has a size of max(memory.size, batch_size).
         """
         pass
 
@@ -65,10 +71,13 @@ class ListMemory(Memory):
         self._index = 0
 
     def add(self, s, a, r, s_, done):
-        # if not self.state_shape and s.shape != self.state_shape or s_.shape != self.state_shape:
-        #    warn('The shape {} of input states does not match the required shape {} of '
-        #         'this memory'.format(s.shape if s.shape != self.state_shape else s_.shape, self.state_shape))
-        #    return False
+        if self.state_shape is not None:
+            if s.shape != self.state_shape or s_.shape != self.state_shape:
+                warn('The shape {} of input {} state does not match the required shape {} of this memory'
+                     .format(s.shape if s.shape != self.state_shape else s_.shape,
+                             "current" if s.shape != self.state_shape else "next",
+                             self.state_shape))
+                return False
 
         exp = Experience(s, a, r, s_, done)
 

@@ -1,5 +1,5 @@
-from doom_rl.utils.core.memory import Memory
-from doom_rl.utils.core.model import Model
+from doom_rl.memory import Memory
+from doom_rl.models.model import Model
 
 
 class Agent:

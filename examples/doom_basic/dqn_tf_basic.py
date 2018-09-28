@@ -16,12 +16,13 @@ import vizdoom as vzd
 import sys
 import os
 from os.path import join, dirname
-root = dirname(dirname(os.getcwd()))
-sys.path.append(root)
-from doom_rl.utils.core.memory import ListMemory
-from doom_rl.utils.agents import DQNAgent
-from doom_rl.utils.models import SimpleTfModel
-from doom_rl.utils.policy import EpsilonGreedyPolicy
+os.chdir(dirname(__file__))
+root_path = dirname(dirname(os.getcwd()))
+sys.path.append(root_path)
+from doom_rl.memory import ListMemory
+from doom_rl.agents.dqn import DQNAgent
+from doom_rl.models.tfmodels import SimpleTfModel
+from doom_rl.policy import EpsilonGreedyPolicy
 
 memory_limit = 40000
 learning_rate = 2.5e-4
@@ -64,7 +65,7 @@ if not os.path.isdir("weights"):
     os.mkdir("weights")
 weights_load_path = join("weights", "dqn_doom_basic.ckpt")
 weights_save_path = join("weights", "dqn_doom_basic.ckpt")
-config_path = join(root, "configuration", "doom_config", "basic.cfg")
+config_path = join("..", "configuration", "doom_config", "basic.cfg")
 
 
 def image_preprocess(image, shape, crop_box=None, rgb_level=256):
@@ -82,7 +83,6 @@ def image_preprocess(image, shape, crop_box=None, rgb_level=256):
 
 def batch_process(batch):
     batch = np.array(batch, dtype=np.float32)
-    batch = np.transpose(batch, [0, 2, 3, 1])
     return batch / 255.
 
 
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     print(actions)
 
     agent = DQNAgent(SimpleTfModel(input_shape, nb_actions, learning_rate, batch_process),
-                     ListMemory(memory_limit), actions)
+                     ListMemory(memory_limit, state_shape=input_shape), actions)
     if load_weights:
         agent.model.load_weights(weights_load_path)
 
@@ -154,7 +154,8 @@ if __name__ == '__main__':
 
                 # Get the experience of this training step
                 current_state_buffer.appendleft(s)
-                action = agent.get_action([list(current_state_buffer)])
+                current_input = np.transpose(np.asarray(current_state_buffer, np.uint8), [1, 2, 0])
+                action = agent.get_action([current_input])
                 if training_policy.choose_by_random():
                     action = random.choice(range(nb_actions))
                 reward = game.make_action(actions[action], frame_repeat)
@@ -165,13 +166,14 @@ if __name__ == '__main__':
                 else:
                     next_state = np.zeros(image_shape)
                 next_state_buffer.appendleft(next_state)
+                next_input = np.transpose(np.asarray(current_state_buffer, np.uint8), [1, 2, 0])
 
                 # shrink reward
                 reward = reward / frame_repeat
 
                 # Save the experience
-                agent.save_experience(list(current_state_buffer), action, reward,
-                                      list(next_state_buffer), terminate)
+                agent.save_experience(current_input, action, reward,
+                                      next_input, terminate)
                 s = next_state
 
                 if terminate:
@@ -194,6 +196,7 @@ if __name__ == '__main__':
             # Statistics
             losses_mean = np.mean(epoch_losses) if len(epoch_losses) != 0 else 0
             print("{} training episodes played.".format(train_episodes_finished))
+            print("Agent's memory size: {}".format(agent.memory.size))
             print("mean loss: [{:.3f}]".format(losses_mean), end=' ')
             print("mean epsilon: [{:.3f}]".format(np.mean(epoch_epsilons)), end=' ')
             print("mean reward: [{:.2f}±{:.2f}]".format(np.mean(epoch_rewards), np.std(epoch_rewards)), end=' ')
@@ -228,8 +231,9 @@ if __name__ == '__main__':
         while not game.is_episode_finished():
             s = image_preprocess(game.get_state().screen_buffer, image_shape, image_crop, rgb_level=image_rgb_level)
             current_state_buffer.appendleft(s)
-            action = agent.get_action([list(current_state_buffer)])
-            print('q_values', agent.model.get_q_values([list(current_state_buffer)]), end=' ')
+            current_input = np.transpose(np.asarray(current_state_buffer, np.uint8), [1, 2, 0])
+            action = agent.get_action([current_input])
+            print('q_values', agent.model.get_q_values([current_input]), end=' ')
             print('action ', action+1, ' ', actions[action])
 
             game.set_action(actions[action])

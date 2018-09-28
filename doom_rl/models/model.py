@@ -1,5 +1,4 @@
 import tensorflow as tf
-import tensorflow.keras as tfk
 
 
 class Model:
@@ -19,8 +18,9 @@ class Model:
         * `preprocess_state_batch` A function that takes a batch of states as input,
         then perform pre-processing on the batch of states and return the processed batch.
     """
-    def __init__(self, preprocess_state_batch=lambda x: x):
+    def __init__(self, learning_rate, preprocess_state_batch=lambda x: x):
         self.preprocess_state_batch = preprocess_state_batch
+        self.lr = learning_rate
 
     def save_weights(self, save_path):
         """
@@ -91,10 +91,9 @@ class DQNTfModel(Model):
     """
 
     def __init__(self, state_shape, nb_actions, learning_rate, **kwargs):
-        super(DQNTfModel, self).__init__(**kwargs)
+        super(DQNTfModel, self).__init__(learning_rate, **kwargs)
         self.state_shape = state_shape
         self.nb_actions = nb_actions
-        self.lr = learning_rate
 
         # Tensorflow session
         self._session = None
@@ -115,7 +114,7 @@ class DQNTfModel(Model):
         self._optimizer = None
 
         # Build the network
-        self._build_network(self.lr)
+        self._build_network()
 
         # Check whether the definition for self.q_values and self._optimizer are provided
         assert self.q_values is not None, 'The output of the network is not defined.'
@@ -152,7 +151,7 @@ class DQNTfModel(Model):
         state = self.preprocess_state_batch(state)
         return self.session.run(self._max_q_values, {self.s_input: state})
 
-    def _build_network(self, learning_rate):
+    def _build_network(self):
         """
         Build the model's network. (Example implementation in doom_rl.utils.models.SimpleTfModel)
 
@@ -162,18 +161,9 @@ class DQNTfModel(Model):
         2. The loss of the network is already defined as self._loss and the training operation defined as
            self._train = self._optimizer.minimize(self._loss), however, you need to provide the definition
            for self._optimizer in this method. (Adam optimizer, RMSProp optimizer etc.)
-        3. Argument `learning_rate` can be used for constructing self._optimizer.
+        3. Use self.lr as the optimizer's learning_rate
         """
         pass
-
-    def compile(self, input_shape, output_shape, learning_rate):
-        """
-        To be added.
-        :param input_shape: input_shape
-        :param output_shape: output_shape
-        :param learning_rate: learning_rate
-        """
-        raise NotImplementedError()
 
     @property
     def session(self):
