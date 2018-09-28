@@ -3,7 +3,7 @@ from doom_rl.agents.agent import Agent
 
 class DQNAgent(Agent):
     """
-        Agent implemented with q-learning algorithm.
+        q-learning algorithm implementation
     """
     def __init__(self, model, memory, actions, **kwargs):
         super(DQNAgent, self).__init__(model, memory, actions, **kwargs)

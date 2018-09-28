@@ -5,10 +5,10 @@ class EpsilonGreedyPolicy:
     """
     Epsilon greedy policy with epsilon decay.
 
-    # Arguments
-        * `start_epsilon` The value ([end_epsilon, 1]) of epsilon that will be taken at the first step.
-        * `end_epsilon` The value ([0, start_epsilon]) of epsilon that will be taken after steps reaches decay_steps.
-        * `decay_steps` The number of steps to take the value of epsilon from start_epsilon to end_epsilon.
+    Args:
+        start_epsilon: The value ([end_epsilon, 1]) of epsilon that will be taken at the first step.
+        end_epsilon: The value ([0, start_epsilon]) of epsilon that will be taken after steps reaches decay_steps.
+        decay_steps: The number of steps to take the value of epsilon from start_epsilon to end_epsilon.
     """
 
     def __init__(self, start_epsilon=0., end_epsilon=0., decay_steps=1):
@@ -31,9 +31,10 @@ class EpsilonGreedyPolicy:
 
     def update(self, steps):
         """
-        Update the number of steps that the agent has taken in order to perform epsilon decay.
+        Update the number of training steps that the agent has performed.
 
-        :param steps: The number of steps that has been taken.
+        Args:
+            steps: The number of training steps the agent has performed.
         """
         if steps < 0:
             self._steps = 0

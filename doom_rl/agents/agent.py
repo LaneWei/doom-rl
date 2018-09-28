@@ -9,13 +9,13 @@ class Agent:
     You need to implement the following method:
         * `learn_from_memory`
 
-    # Argument
-        * `model` An nn model. (`Model` instance).
-        * `memory` Agent's memory (`Memory` instance).
-        * `actions' A set or list of actions that this agent can take.
-        * `policy` ...
-        * `learning_rate` The learning rate that will be applied to the learning process.
-        * `discount_factor` The discount factor that will be applied to the learning process.
+    Args:
+        model: An nn model. (`Model` instance).
+        memory: Agent's memory (`Memory` instance).
+        actions: A set or list of actions that this agent can take.
+        policy: ...
+        learning_rate: The learning rate that will be applied to the learning process.
+        discount_factor: The discount factor that will be applied to the learning process.
     """
 
     def __init__(self, model, memory, actions, learning_rate=1e-5, discount_factor=0.95):
@@ -32,8 +32,12 @@ class Agent:
         """
         Get the action that this agent should perform at current state `state` according to the agent's model.
 
-        :param state: The current state.
-        :return: The action according to this agent's model.
+        Args:
+            state: The current state.
+
+        Returns:
+            The action according to this agent's model.
+
         """
 
         return self.model.get_best_action(state)
@@ -43,7 +47,11 @@ class Agent:
         Perform the learning step. This agent will get a randomly chosen batch of experiences from its
         memory and learn to improve its model.
 
-        :param batch_size: The expected size of batch.
+        Args:
+            batch_size: The expected size of the experience batch which will be used for agent's learning step.
+
+        Returns:
+            The loss of this learning step.
         """
         pass
 
@@ -51,14 +59,16 @@ class Agent:
         """
         See `memory.add` for more information.
 
-        :param s: Current state.
-        :param a: Action.
-        :param r: Reward.
-        :param s_: The next state.
-        :param terminate: The terminate flag.
-        :return: True, if the experience is saved to this agent's memory successfully.
-        """
+        Args:
+            s: Current state.
+            a: Action.
+            r: Reward.
+            s_: Next state.
+            terminate: The terminate flag.
 
+        Returns:
+            True, if the experience is saved.
+        """
         return self.memory.add(s, a, r, s_, terminate)
 
     @property

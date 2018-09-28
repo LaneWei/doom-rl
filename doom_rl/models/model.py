@@ -14,8 +14,9 @@ class Model:
         * `get_q_values` (optional)
         * `get_max_q_values` (optional)
 
-    # Argument:
-        * `preprocess_state_batch` A function that takes a batch of states as input,
+    Args:
+        learning_rate: The learning rate. (used by an optimizer)
+        preprocess_state_batch: A function that takes a batch of states as input,
         then perform pre-processing on the batch of states and return the processed batch.
     """
     def __init__(self, learning_rate, preprocess_state_batch=lambda x: x):
@@ -26,7 +27,8 @@ class Model:
         """
         Save the weights of this model to a file.
 
-        :param save_path: The file path to save the weights of this model.
+        Args:
+            save_path: The file path to save the weights of this model.
         """
         pass
 
@@ -34,18 +36,22 @@ class Model:
         """
         Load the weights of this model from a file.
 
-        :param load_path: The file path from which the weights of this model is to be loaded.
+        Args:
+            load_path: The file path from which the weights of this model is to be loaded.
         """
         pass
 
     def train(self, state, action, target_q):
         """
-        Perform a training step on this model.
+        Perform a learning step to train this model.
 
-        :param state: A batch of states.
-        :param action: A batch of actions taken.
-        :param target_q: Target q values.
-        :return: The loss of this training step.
+        Args:
+            state: A batch of states.
+            action: A batch of actions taken.
+            target_q: Target q values.
+
+        Returns:
+            The calculated loss of this training step.
         """
         pass
 
@@ -54,16 +60,23 @@ class Model:
         Given the current state as input, get the best action (with the highest q value)
         according to this model's network.
 
-        :param state: The current state.
-        :return: The the action with the highest q value.
+        Args:
+            state: The current state.
+
+        Returns:
+            The the action with the highest q value.
         """
         pass
 
     def get_q_values(self, state):
         """
-        Get all q values at a given state.
-        :param state: The current state.
-        :return: A list containing all q values.
+        Get the q values of all actions at a given state.
+
+        Args:
+            state: The current state.
+
+        Returns:
+            A list containing the q values of all actions.
         """
         raise NotImplementedError('Function get_q_values not implemented.')
 
@@ -71,8 +84,11 @@ class Model:
         """
         Get the highest q value at a given state.
 
-        :param state: The current state.
-        :return: The highest q value.
+        Args:
+            state: The given state.
+
+        Returns:
+            The highest q value at the given state.
         """
         raise NotImplementedError('Function get_max_q_values not implemented.')
 
@@ -83,11 +99,10 @@ class DQNTfModel(Model):
     in base class `Model` are implemented.
     You can easily extend this class by just implementing `_build_network()` method in your subclass.
 
-    # Arguments:
-        * `state_shape` The shape of input states. (to be modified)
-        * `nb_actions` The number of actions that the agent can perform. (to be modified)
-        * `preprocess_state_batch` A function that takes a batch of states as input,
-        then perform pre-processing on the batch of states and return the processed batch.
+    Args:
+        state_shape: The shape of input states. (to be modified)
+        nb_actions: The number of actions that the agent can perform. (to be modified)
+        learning_rate: The learning rate.
     """
 
     def __init__(self, state_shape, nb_actions, learning_rate, **kwargs):

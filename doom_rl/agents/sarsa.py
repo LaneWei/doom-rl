@@ -4,7 +4,7 @@ import numpy as np
 
 class ESARSAAgent(Agent):
     """
-    Agent implemented with expected sarsa algorithm.
+        sarsa algorithm implementation
     """
     def __init__(self, model, memory, actions, epsilon=0, **kwargs):
         super(ESARSAAgent, self).__init__(model, memory, actions, **kwargs)
