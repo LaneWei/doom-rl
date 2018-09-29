@@ -3,13 +3,12 @@ import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 from tensorflow.layers import conv2d, dense
 from tensorflow.nn import relu
-from tensorflow.train import AdamOptimizer as Adam
 
 
 class SimpleTfModel(DQNTfModel):
-    def __init__(self, state_shape, nb_actions, learning_rate, preprocess_state_batch):
+    def __init__(self, state_shape, nb_actions, preprocess_state_batch):
         super(SimpleTfModel, self).__init__(state_shape, nb_actions,
-                                            learning_rate, preprocess_state_batch=preprocess_state_batch)
+                                            preprocess_state_batch=preprocess_state_batch)
 
     def _build_network(self):
         conv1 = conv2d(self.s_input, 24, 6, strides=(3, 3), activation=relu,
@@ -26,5 +25,3 @@ class SimpleTfModel(DQNTfModel):
         self.q_values = dense(fc1, self.nb_actions, activation=None,
                               kernel_initializer=tf.contrib.layers.xavier_initializer(),
                               bias_initializer=tf.constant_initializer(0.01))
-
-        self._optimizer = Adam(self.lr)
