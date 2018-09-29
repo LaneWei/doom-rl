@@ -18,7 +18,7 @@ def process_gray8_image(image, output_shape, crop_box=None, gray_scale_level=256
     """
     if gray_scale_level < 1 or gray_scale_level > 256:
         raise ValueError('Gray scale level should be an integer ranging from 1 to 256')
-
+    
     img = Image.fromarray(image)
     if crop_box is not None:
         img = img.crop(crop_box)

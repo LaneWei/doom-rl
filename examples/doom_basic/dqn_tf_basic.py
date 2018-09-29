@@ -19,10 +19,13 @@ from os.path import join, dirname
 os.chdir(dirname(__file__))
 root_path = dirname(dirname(os.getcwd()))
 sys.path.append(root_path)
-from doom_rl.memory import ListMemory
+
 from doom_rl.agents.dqn import DQNAgent
+from doom_rl.envs.env import DoomGrayEnv
+from doom_rl.memory import ListMemory
 from doom_rl.models.tfmodels import SimpleTfModel
 from doom_rl.policy import EpsilonGreedyPolicy
+from doom_rl.utils import process_gray8_image, process_batch
 
 memory_limit = 40000
 learning_rate = 2.5e-4
@@ -68,24 +71,6 @@ weights_save_path = join("weights", "dqn_doom_basic.ckpt")
 config_path = join("..", "configuration", "doom_config", "basic.cfg")
 
 
-def image_preprocess(image, shape, crop_box=None, rgb_level=256):
-    # format has to be GRAY8
-    img = Image.fromarray(image)
-    if crop_box is not None:
-        # resolution has to be RES320*240
-        img = img.crop(crop_box)
-    img = img.resize(shape)
-    img = np.array(img)
-    compress = 256 // rgb_level
-    img = img // compress * compress
-    return img
-
-
-def batch_process(batch):
-    batch = np.array(batch, dtype=np.float32)
-    return batch / 255.
-
-
 def initialize_doom_game(config=None):
     print('\n\nInitializing doom...')
     _game = vzd.DoomGame()
@@ -123,7 +108,7 @@ if __name__ == '__main__':
         game.set_window_visible(train_visualize)
         game.set_screen_resolution(vzd.ScreenResolution.RES_320X240)
         game.init()
-        training_policy = EpsilonGreedyPolicy(max_eps, min_eps, decay_steps=train_epochs*steps_per_epoch)
+        training_policy = EpsilonGreedyPolicy(max_eps, min_eps, total_decay_steps=train_epochs * steps_per_epoch)
 
         total_steps = 0
         time_start_training = time()

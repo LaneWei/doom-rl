@@ -88,10 +88,6 @@ class Agent:
     def actions(self):
         return list(self._actions)
 
-    @property
-    def action_size(self):
-        return len(self._actions)
-
     """
     @property
     def learning_rate(self):
