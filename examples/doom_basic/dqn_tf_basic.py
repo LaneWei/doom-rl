@@ -173,11 +173,12 @@ if __name__ == '__main__':
         terminate = False
         while not terminate:
             a = agent.get_action(s)
-            for _ in range(frame_repeat) and not terminate:
-                s_, r, terminate, _ = env.step(action_space[a])
-                sleep(0.1)
-            print('q_values', agent.model.get_q_values(s), end=' ')
+            print('q_values', agent.get_q_values(s), end=' ')
             print('action: ', a)
+            for _ in range(frame_repeat):
+                s, r, terminate, _ = env.step(action_space[a])
+                if terminate: break
+                sleep(0.025)
 
         sleep(1.0)
         reward = env.episode_reward()
