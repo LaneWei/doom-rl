@@ -1,5 +1,7 @@
 from doom_rl.memory import Memory
 from doom_rl.models.model import Model
+from doom_rl.policy import GreedyPolicy
+import numpy as np
 
 
 class Agent:
@@ -28,19 +30,35 @@ class Agent:
         # self.learning_rate = learning_rate
         self.discount_factor = discount_factor
 
-    def get_action(self, state):
+    def get_q_values(self, state):
         """
-        Get the action that this agent should perform at the current state `state`.
+        Get the q values of all available actions at a given state.
 
         Args:
             state: The current state.
 
         Returns:
-            The action according to this agent's model.
-
+            An numpy.ndarray, containing the q values.
         """
 
-        return self.model.get_best_action(state)
+        return np.asarray(self.model.get_q_values([state]), dtype=np.float32)
+
+    def get_action(self, state, policy=GreedyPolicy()):
+        """
+        Get the action that this agent should perform at the current state `state` according to
+        the given policy. If the policy is not provided, greedy policy (choose the action with
+        the highest q value) will be applied
+
+        Args:
+            state: The current state.
+            policy: A policy. (see doom_rl.policy for more information)
+
+        Returns:
+            The action chosen by the given policy.
+        """
+
+        action = policy.choose_action(q_values=self.get_q_values(state))
+        return self._actions[action]
 
     def learn_from_memory(self, batch_size):
         """
@@ -87,18 +105,6 @@ class Agent:
     @property
     def actions(self):
         return list(self._actions)
-
-    """
-    @property
-    def learning_rate(self):
-        return self._lr
-
-    @learning_rate.setter
-    def learning_rate(self, value):
-        if value <= 0:
-            raise ValueError('The value of learning rate should always be positive.')
-        self._lr = value
-    """
 
     @property
     def discount_factor(self):

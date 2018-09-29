@@ -3,14 +3,26 @@ import numpy as np
 
 class Policy:
     """
-    Abstract base class for policies.
+    Abstract base class for q values based policies.
 
     You need to implement the following method:
         * `choose_action`
     """
 
-    def choose_action(self, **kwargs):
+    def choose_action(self, q_values):
         pass
+
+
+class GreedyPolicy(Policy):
+    """
+    Greedy policy.
+    This policy chooses the action with the highest q value.
+    """
+
+    def choose_action(self, q_values):
+        assert q_values.ndim == 1
+
+        return np.argmax(q_values)
 
 
 class EpsilonGreedyPolicy(Policy):
@@ -27,6 +39,7 @@ class EpsilonGreedyPolicy(Policy):
     """
 
     def __init__(self, start_epsilon=0., end_epsilon=0., total_decay_steps=1):
+        super(EpsilonGreedyPolicy, self).__init__()
         self._start_epsilon = start_epsilon if start_epsilon <= 1 else 1
         self._end_epsilon = end_epsilon if end_epsilon >= 0 else 0
         self._decay_steps = total_decay_steps if total_decay_steps > 0 else 1
