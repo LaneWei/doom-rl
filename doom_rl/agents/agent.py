@@ -14,16 +14,14 @@ class Agent:
     Args:
         model: A compiled nn model. (`Model` instance).
         memory: Agent's memory (`Memory` instance).
-        actions: A list of actions that this agent can take.
-        # policy: ...
-        # learning_rate: The learning rate that will be applied to the learning process.
+        actions: A list of actions that this agent can take. (May be different from env.action_space)
         discount_factor: The discount factor that will be applied to the learning process.
     """
 
     def __init__(self, model, memory, actions, discount_factor=0.95):
         self._model = model
         self._memory = memory
-        self._actions = actions
+        self._action_space = actions
         # self._lr = None
         self._gamma = None
 
@@ -41,7 +39,7 @@ class Agent:
             An numpy.ndarray, containing the q values.
         """
 
-        return np.asarray(self.model.get_q_values([state]), dtype=np.float32)
+        return np.asarray(self.model.get_q_values([state])[0], dtype=np.float32)
 
     def get_action(self, state, policy=GreedyPolicy()):
         """
@@ -58,7 +56,7 @@ class Agent:
         """
 
         action = policy.choose_action(q_values=self.get_q_values(state))
-        return self._actions[action]
+        return action
 
     def learn_from_memory(self, batch_size):
         """
@@ -103,8 +101,8 @@ class Agent:
         return self._memory
 
     @property
-    def actions(self):
-        return list(self._actions)
+    def action_space(self):
+        return list(self._action_space)
 
     @property
     def discount_factor(self):

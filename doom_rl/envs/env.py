@@ -1,4 +1,5 @@
 from collections import deque
+import itertools as it
 import numpy as np
 import vizdoom as vzd
 
@@ -17,23 +18,28 @@ class DoomGrayEnv:
         window_length: The number of images that will be stacked together as the state of the environment.
         process_image: A function that takes an numpy.ndarray image as input then processes the input
         image and returns an numpy.ndarray.
+        configuration_path: Path of the configuration file.
 
     Properties:
-        action_space: A list which contains all available actions. (provided by subclasses)
-        available_actions: The number of available actions. (equal to len(action_space))
+        game: Doom game environment.
+        action_space: A list which contains all available actions.
+        available_buttons_size: The number of available buttons.
+        resolution: A tuple which indicates the shape of screen_buffer.
         screen_buffer: An numpy.ndarray representing the image of the current screen. If the game is not
         running or the current episode is finished, np.zeros(resolution) will be returned.
-        resolution: A tuple which indicates the shape of screen_buffer.
+        processed_screen_image: Processed screen buffer.
     """
 
-    def __init__(self, window_length, process_image):
+    def __init__(self, window_length, process_image, configuration_path=None):
         self.window_length = window_length
         self.process_image = process_image
 
         self._game = vzd.DoomGame()
+        if configuration_path is not None:
+            self.load_config(configuration_path)
         self._game.set_screen_format(vzd.ScreenFormat.GRAY8)
 
-        self._action_space = None
+        self._action_space = [list(a) for a in it.product([0, 1], repeat=self.available_buttons_size)]
         self._next_state_buffer = None
 
     def load_config(self, path, verbose=True):
@@ -50,6 +56,7 @@ class DoomGrayEnv:
         Returns:
             True, if the configuration file is correctly read and applied.
         """
+
         success = self.game.load_config(path)
         self.game.set_screen_format(vzd.ScreenFormat.GRAY8)
         if verbose:
@@ -66,12 +73,13 @@ class DoomGrayEnv:
         Returns:
             The initial state, an numpy.ndarray, whose shape is (h, w, self.window_length).
         """
+
         if not self.game.is_running():
             self.game.init()
         else:
             self.game.new_episode()
 
-        initial_image = self.image
+        initial_image = self.processed_screen_image
         self._next_state_buffer = deque([initial_image for _ in range(self.window_length)], self.window_length)
         return np.asarray(self._next_state_buffer, dtype=np.uint8).transpose([1, 2, 0])
 
@@ -94,11 +102,12 @@ class DoomGrayEnv:
             variables will be returned in the future)
         """
 
+        assert action in self.action_space
         reward = self.game.make_action(action, frame_repeat)
         if reward_discount:
             reward /= frame_repeat
         terminate = self.game.is_episode_finished()
-        next_image = self.image
+        next_image = self.processed_screen_image
         self._next_state_buffer.appendleft(next_image)
 
         return np.asarray(self._next_state_buffer, dtype=np.uint8).transpose([1, 2, 0]), reward, terminate, None
@@ -117,12 +126,19 @@ class DoomGrayEnv:
 
         self.game.close()
 
+    def set_window_visible(self, visible):
+        """
+        See `vizdoom.set_window_visible` for more information.
+        """
+
+        self.game.set_window_visible(visible)
+
     @property
     def game(self):
         return self._game
 
     @property
-    def available_actions(self):
+    def available_buttons_size(self):
         return self.game.get_available_buttons_size()
 
     @property
@@ -139,6 +155,6 @@ class DoomGrayEnv:
         return np.zeros(self.resolution) if game_state is None else game_state.screen_buffer
 
     @property
-    def image(self):
+    def processed_screen_image(self):
         # returns processed screen buffer
         return self.process_image(self.screen_buffer)

@@ -195,6 +195,7 @@ class DQNTfModel(Model):
 
         self._optimizer = optimizers[optimizer](learning_rate=learning_rate, **kwargs)
         self._train = self._optimizer.minimize(self._loss)
+        self.session.run(tf.constant("Model compiled."))
 
     def _create_placeholders(self):
         assert self.s_input is None
