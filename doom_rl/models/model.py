@@ -16,11 +16,11 @@ class Model:
         * `get_max_q_values` (optional)
 
     Args:
-        preprocess_state_batch: A function that takes a batch of states as input,
+        process_state_batch: A function that takes a batch of states as input,
         then pre-processes the batch of states and returns the processed batch.
     """
-    def __init__(self, preprocess_state_batch=lambda x: x):
-        self.preprocess_state_batch = preprocess_state_batch
+    def __init__(self, process_state_batch=lambda x: x):
+        self.process_state_batch = process_state_batch
 
     def compile(self, learning_rate, optimizer='Adam', **kwargs):
         """
@@ -159,21 +159,21 @@ class DQNTfModel(Model):
         tf.train.Saver().restore(self.session, load_path)
 
     def train(self, state, action, target_q):
-        state = self.preprocess_state_batch(state)
+        state = self.process_state_batch(state)
         l, _ = self.session.run([self._loss, self._train],
                                 {self.s_input: state, self.target_q_values: target_q, self.a_input: action})
         return l
 
     def get_best_action(self, state):
-        state = self.preprocess_state_batch(state)
+        state = self.process_state_batch(state)
         return self.session.run(self._best_action, {self.s_input: state})[0]
 
     def get_q_values(self, state):
-        state = self.preprocess_state_batch(state)
+        state = self.process_state_batch(state)
         return self.session.run(self.q_values, {self.s_input: state})
 
     def get_max_q_values(self, state):
-        state = self.preprocess_state_batch(state)
+        state = self.process_state_batch(state)
         return self.session.run(self._max_q_values, {self.s_input: state})
 
     def compile(self, learning_rate, optimizer='Adam', **kwargs):

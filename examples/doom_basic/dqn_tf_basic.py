@@ -114,7 +114,7 @@ if __name__ == '__main__':
     print("Total {} actions:".format(nb_actions))
     print(actions)
 
-    agent = DQNAgent(SimpleTfModel(input_shape, nb_actions, learning_rate, batch_process),
+    agent = DQNAgent(SimpleTfModel(input_shape, nb_actions, batch_process),
                      ListMemory(memory_limit, state_shape=input_shape), actions)
     if load_weights:
         agent.model.load_weights(weights_load_path)

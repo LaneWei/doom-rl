@@ -69,7 +69,7 @@ class Agent:
         Returns:
             True, if the experience is saved.
         """
-        
+
         return self.memory.add(s, a, r, s_, terminate)
 
     @property
