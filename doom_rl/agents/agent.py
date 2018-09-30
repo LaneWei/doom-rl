@@ -41,21 +41,39 @@ class Agent:
 
         return np.asarray(self.model.get_q_values([state])[0], dtype=np.float32)
 
+    def get_action_id(self, action):
+        """
+        Get the integer representation of an action.
+
+        Args:
+            action: The given action, which should be contained in the agent's action space.
+
+        Returns:
+            An integer, representing the index of the given action in this agent's action space.
+        """
+
+        assert action in self._action_space
+        return self._action_space.index(action)
+
     def get_action(self, state, policy=GreedyPolicy()):
         """
         Get the action that this agent should perform at the current state `state` according to
         the given policy. If the policy is not provided, greedy policy (choose the action with
-        the highest q value) will be applied
+        the highest q value) will be applied.
+        Note: The action returned by model is an integer representation, however, agent's `get_action()`
+        method should return a 'real' action that the agent can perform in the environment.
 
         Args:
             state: The current state.
             policy: A policy. (see doom_rl.policy for more information)
 
         Returns:
-            The action chosen by the given policy.
+            The action, which is contained in this agent's action space, chosen by the given policy.
         """
 
-        action = policy.choose_action(q_values=self.get_q_values(state))
+        index = policy.choose_action(q_values=self.get_q_values(state))
+        action = self._action_space[index]
+        # assert action in self.action_space
         return action
 
     def learn_from_memory(self, batch_size):

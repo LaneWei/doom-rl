@@ -1,6 +1,7 @@
 from collections import deque
 import itertools as it
 import numpy as np
+from os.path import abspath
 import vizdoom as vzd
 
 
@@ -61,7 +62,7 @@ class DoomGrayEnv:
         self.game.set_screen_format(vzd.ScreenFormat.GRAY8)
         if verbose:
             print("Success" if success else "Fail", end=" ")
-            print("to load configuration file from {}.".format(path))
+            print("to load configuration file from {}.\n\n".format(abspath(path)))
         return success
 
     def reset(self):
@@ -89,7 +90,7 @@ class DoomGrayEnv:
         method will return undefined result. You need to call `reset()` to reset the environment.
 
         Args:
-            action: Agent's action.
+            action: Agent's action, which should be contained in the env's action space.
             frame_repeat: The number of frames the agent will skip by taking the same action.
             reward_discount: If True, the reward in this one step will be the original reward
             divided by frame_repeat.

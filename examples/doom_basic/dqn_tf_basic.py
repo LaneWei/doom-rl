@@ -117,11 +117,12 @@ if __name__ == '__main__':
                     training_policy.update(total_steps)
 
                 a = agent.get_action(s, policy=training_policy)
-                s_, r, terminate, _ = env.step(action_space[a], frame_repeat=frame_repeat,
+                a_id = agent.get_action_id(a)
+                s_, r, terminate, _ = env.step(a, frame_repeat=frame_repeat,
                                                reward_discount=True)
 
                 # Save the experience
-                agent.save_experience(s, a, r, s_, terminate)
+                agent.save_experience(s, a_id, r, s_, terminate)
                 s = s_
 
                 if terminate:
@@ -138,11 +139,11 @@ if __name__ == '__main__':
                     epoch_metrics["losses"].append(loss)
 
             # Statistics
-            losses_mean = np.mean(epoch_metrics["losses"]) if len(epoch_metrics["losses"]) != 0 else 0
             print("{} training episodes played.".format(epoch_metrics["played_episodes"]))
             print("Agent's memory size: {}".format(agent.memory.size))
-            print("mean loss: [{:.3f}]".format(losses_mean), end=' ')
-            print("mean epsilon: [{:.3f}]".format(np.mean(epoch_metrics["epsilons"])), end=' ')
+            if len(epoch_metrics["losses"]) != 0:
+                print("mean loss: [{:.3f}]".format(np.mean(epoch_metrics["losses"])), end=' ')
+            print("mean epsilon: [{:.3f}]".format(np.mean(epoch_metrics["epsilons"])))
             print("mean reward: [{:.2f}±{:.2f}]".format(np.mean(epoch_metrics["rewards"]),
                                                         np.std(epoch_metrics["rewards"])), end=' ')
             print("min: [{:.1f}] max:[{:.1f}]".format(np.min(epoch_metrics["rewards"]),
@@ -173,11 +174,13 @@ if __name__ == '__main__':
         terminate = False
         while not terminate:
             a = agent.get_action(s)
+            a_id = agent.get_action_id(a)
             print('q_values', agent.get_q_values(s), end=' ')
-            print('action: ', a)
+            print('action: ', a_id+1, ", ", a)
             for _ in range(frame_repeat):
-                s, r, terminate, _ = env.step(action_space[a])
-                if terminate: break
+                s, r, terminate, _ = env.step(a)
+                if terminate:
+                    break
                 sleep(0.025)
 
         sleep(1.0)

@@ -6,6 +6,9 @@ class Model:
     Base class for implementing a q_value based model that encapsulates a network
     (tensorflow graphs, keras model, etc.) and operations on this model.
 
+    Note: From a model's perspective, actions are represented by integers and are different
+    from the real actions that one agent can perform.
+
     You need to implement the following methods:
         * `compile`
         * `save_weights`
@@ -75,7 +78,7 @@ class Model:
             state: The current state.
 
         Returns:
-            The the action with the highest q value.
+            An integer representing the the action with the highest q value.
         """
         pass
 
@@ -195,7 +198,9 @@ class DQNTfModel(Model):
 
         self._optimizer = optimizers[optimizer](learning_rate=learning_rate, **kwargs)
         self._train = self._optimizer.minimize(self._loss)
-        self.session.run(tf.constant("Model compiled."))
+
+        # Start session
+        print(self.session.run(tf.constant("Model compiled.")))
 
     def _create_placeholders(self):
         assert self.s_input is None
