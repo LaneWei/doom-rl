@@ -21,15 +21,19 @@ from doom_rl.models.tfmodels import SimpleTfModel
 from doom_rl.policy import EpsilonGreedyPolicy
 from doom_rl.utils import process_gray8_image, process_batch
 
-memory_limit = 40000
+memory_capacity = 40000
 learning_rate = 2.5e-4
 discount_factor = .99
-max_eps = 1.0
-min_eps = 0.1
 
-# Total training epochs
+# Training epochs
 train_epochs = 40
 steps_per_epoch = 4000
+
+# Epsilon greedy policy settings.
+max_eps = 1.0
+min_eps = 0.1
+decay_steps = train_epochs * steps_per_epoch
+
 # During warm up, the agent will not perform learning steps
 warm_up_steps = 4000
 train_visualize = False
@@ -40,13 +44,17 @@ batch_size = 32
 
 # The number of frames that the agent will skip before taking another action
 frame_repeat = 12
+
 # To make sure the agent can acquire more information, the input of the network contains
 # most recently continuous frames
 continuous_frames = 3
 
 # The height and width of every input image
 image_shape = (42, 42)
+
+# A rectangular region of the image to be cropped
 image_crop = (0, 0, 320, 200)
+
 # The input shape of the network should be (batch_size, height, width, frames)
 input_shape = image_shape + (continuous_frames,)
 image_gray_scale_level = 32
@@ -66,22 +74,34 @@ config_path = join("..", "configuration", "doom_config", "basic.cfg")
 
 
 if __name__ == '__main__':
+    # Argument parser
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', '-m', choices=['train', 'test'], default='train')
     args = parser.parse_args()
 
+    # The doom game environment
     env = DoomGrayEnv(window_length=continuous_frames,
                       process_image=lambda x: process_gray8_image(x, image_shape, image_crop, image_gray_scale_level),
                       configuration_path=config_path)
+
+    # The number of buttons available
     nb_buttons = env.available_buttons_size
+
+    # The action space contains all available actions the agent can perform
     action_space = [list(a) for a in it.product([0, 1], repeat=nb_buttons) if a[0] != 1 or a[1] != 1]
     nb_actions = len(action_space)
+
+    # Agent's model
     model = SimpleTfModel(state_shape=input_shape,
                           nb_actions=nb_actions,
                           process_state_batch=process_batch)
+
+    # Before using a model, it has to be compiled
     model.compile(learning_rate)
+
+    # The agent
     agent = DQNAgent(model=model,
-                     memory=ListMemory(memory_limit),
+                     memory=ListMemory(memory_capacity),
                      actions=action_space)
 
     print("The agent's action space has total {} actions:".format(nb_actions))
@@ -90,12 +110,12 @@ if __name__ == '__main__':
         agent.model.load_weights(weights_load_path)
         print("Loading model weights from {}.".format(weights_load_path))
 
+    # Start training
     if args.mode == 'train':
         env.set_window_visible(train_visualize)
-        training_policy = EpsilonGreedyPolicy(max_eps, min_eps, total_decay_steps=train_epochs * steps_per_epoch)
-
-        total_steps = 0
-        time_start_training = time()
+        train_info = {"policy": EpsilonGreedyPolicy(max_eps, min_eps, total_decay_steps=decay_steps),
+                      "steps": 0,
+                      "start_time": time()}
         for epoch in range(train_epochs):
             print("\nEpoch {}".format(epoch + 1))
             print("-" * 8)
@@ -106,35 +126,45 @@ if __name__ == '__main__':
                              "epsilons": [],
                              "losses": [],
                              "start_time": time()}
+
+            # Perform one training epoch
             for learning_step in trange(steps_per_epoch, leave=False):
-                total_steps += 1
+                # Update the total training steps in this training epoch
+                train_info["steps"] += 1
 
-                # Save the value of current epsilon
-                epoch_metrics["epsilons"].append(training_policy.epsilon)
+                # Record the value of the current epsilon
+                epoch_metrics["epsilons"].append(train_info["policy"].epsilon)
 
-                # Update the policy.
-                if total_steps % 100 == 0:
-                    training_policy.update(total_steps)
+                # Update the policy every 100 training steps
+                if train_info["steps"] % 100 == 0:
+                    train_info["policy"].update(train_info["steps"])
 
-                a = agent.get_action(s, policy=training_policy)
+                # Get the agent's action and its id
+                a = agent.get_action(s, policy=train_info["policy"])
                 a_id = agent.get_action_id(a)
+
+                # Take one step in the environment
                 s_, r, terminate, _ = env.step(a, frame_repeat=frame_repeat,
                                                reward_discount=True)
 
-                # Save the experience
+                # Save this experience
                 agent.save_experience(s, a_id, r, s_, terminate)
+
+                # Update the current state
                 s = s_
 
                 if terminate:
-                    # Save total rewards gained in this episode
+                    # Record the total amount of reward in this episode
                     epoch_metrics["rewards"].append(env.episode_reward())
+
+                    # Update the number of episodes played in this training epoch
                     epoch_metrics["played_episodes"] += 1
 
                     # Reset the environment
                     s = env.reset()
 
-                # Perform learning at the end of each step if it is not warming up
-                if total_steps > warm_up_steps:
+                # Perform learning step if it is not warming up
+                if train_info["steps"] > warm_up_steps:
                     loss = agent.learn_from_memory(batch_size)
                     epoch_metrics["losses"].append(loss)
 
@@ -149,8 +179,9 @@ if __name__ == '__main__':
             print("min: [{:.1f}] max:[{:.1f}]".format(np.min(epoch_metrics["rewards"]),
                                                       np.max(epoch_metrics["rewards"])))
             print("Episode training time: {:.2f} minutes, total training time: {:.2f} minutes.".format(
-                 (time() - epoch_metrics["start_time"]) / 60.0, (time() - time_start_training) / 60.0))
+                 (time() - epoch_metrics["start_time"]) / 60.0, (time() - train_info["start_time"]) / 60.0))
 
+            # Log the weights of the model
             if log_weights and (epoch + 1) % log_weights_epochs == 0:
                 print("Saving the network weights to: ", weights_save_path)
                 agent.model.save_weights(weights_save_path)
