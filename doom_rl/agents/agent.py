@@ -89,7 +89,7 @@ class Agent:
         Returns:
             The loss of this learning step.
         """
-        pass
+        raise NotImplementedError()
 
     def save_experience(self, s, a, r, s_, terminate):
         """

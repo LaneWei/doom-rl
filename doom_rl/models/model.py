@@ -35,7 +35,7 @@ class Model:
             optimizer: A string that specifies the type of the optimizer. Three optimizers
             are available, including: 'Adam' (default), 'RMSProp', 'SGD'.
         """
-        pass
+        raise NotImplementedError()
 
     def save_weights(self, save_path):
         """
@@ -44,7 +44,7 @@ class Model:
         Args:
             save_path: The file path to save the weights of this model.
         """
-        pass
+        raise NotImplementedError()
 
     def load_weights(self, load_path):
         """
@@ -53,7 +53,7 @@ class Model:
         Args:
             load_path: The file path from which the weights of this model is to be loaded.
         """
-        pass
+        raise NotImplementedError()
 
     def train(self, state, action, target_q):
         """
@@ -67,7 +67,7 @@ class Model:
         Returns:
             The calculated loss of this training step.
         """
-        pass
+        raise NotImplementedError()
 
     def get_best_action(self, state):
         """
@@ -80,7 +80,7 @@ class Model:
         Returns:
             An integer representing the the action with the highest q value.
         """
-        pass
+        raise NotImplementedError()
 
     def get_q_values(self, state):
         """
@@ -92,7 +92,7 @@ class Model:
         Returns:
             A list containing the q values of all actions.
         """
-        raise NotImplementedError('Function get_q_values not implemented.')
+        pass
 
     def get_max_q_values(self, state):
         """
@@ -104,7 +104,7 @@ class Model:
         Returns:
             The highest q value at the given state.
         """
-        raise NotImplementedError('Function get_max_q_values not implemented.')
+        pass
 
 
 class DQNTfModel(Model):

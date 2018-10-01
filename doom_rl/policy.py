@@ -5,12 +5,43 @@ class Policy:
     """
     Abstract base class for q values based policies.
 
+    Note: The input q_values can either be a list of q values or a batch (lists) of q values.
+
     You need to implement the following method:
-        * `choose_action`
+        * `action_probs`
     """
 
+    def action_probs(self, q_values):
+        """
+        Get the probability distribution, determined by this policy, of a list of actions given their q values.
+
+        Args:
+            q_values: An numpy.ndarray, whose ndim is 1 or 2, that contains the q values of all available actions.
+
+        Returns:
+            An numpy.ndarray containing the probability distribution with the same shape of q_values.
+        """
+        raise NotImplementedError()
+
     def choose_action(self, q_values):
-        pass
+        """
+        Choose an action according to some policy:
+            - write me
+
+        Args:
+            q_values: An numpy.ndarray, whose ndim is 1 or 2, that contains the q values of all available actions.
+
+        Returns:
+            An numpy.ndarray, whose ndim is (q_values.ndim - 1), of the chosen action(s).
+        """
+
+        if q_values.ndim == 1:
+            q_values = q_values.reshape(1, q_values.shape[0])
+        assert q_values.ndim == 2
+
+        action_probs = self.action_probs(q_values)
+        actions = [np.random.choice(range(len(probs)), p=probs) for probs in action_probs]
+        return np.array(actions).squeeze()
 
 
 class GreedyPolicy(Policy):
@@ -19,10 +50,29 @@ class GreedyPolicy(Policy):
     This policy chooses the action with the highest q value.
     """
 
-    def choose_action(self, q_values):
-        assert q_values.ndim == 1
+    def action_probs(self, q_values):
+        if q_values.ndim == 1:
+            q_values = q_values.reshape(1, q_values.shape[0])
+        assert q_values.ndim == 2
 
-        return np.argmax(q_values)
+        arg_max_q = np.argmax(q_values, axis=1)
+        probs = np.zeros_like(q_values, dtype=np.float32)
+        probs[:, arg_max_q] = 1
+        return probs.squeeze()
+
+    def choose_action(self, q_values):
+        """
+        Choose an action according to greedy policy:
+            - The action with the highest q value will be chosen.
+
+        Args:
+            q_values: An numpy.ndarray, whose ndim is 1 or 2, that contains the q values of all available actions.
+
+        Returns:
+            An numpy.ndarray, whose ndim is (q_values.ndim - 1), of the chosen action(s).
+        """
+
+        return super(GreedyPolicy, self).choose_action(q_values)
 
 
 class EpsilonGreedyPolicy(Policy):
@@ -48,24 +98,33 @@ class EpsilonGreedyPolicy(Policy):
         if self._end_epsilon > self._start_epsilon:
             self._end_epsilon = self._start_epsilon
 
+    def action_probs(self, q_values):
+        if q_values.ndim == 1:
+            q_values = q_values.reshape(1, q_values.shape[0])
+        assert q_values.ndim == 2
+
+        probs = np.zeros_like(q_values, dtype=np.float32)
+        fill = self.epsilon / q_values.shape[1]
+        probs[:, :] = fill
+
+        arg_max_q = np.argmax(q_values, axis=1)
+        probs[:, arg_max_q] += 1 - self.epsilon
+        return probs.squeeze()
+
     def choose_action(self, q_values):
         """
-        Choose an action according to epsilon greedy policy.
+        Choose an action according to epsilon greedy policy:
+            - The action with the highest q value has a (1 - eps) probability of being chosen.
+            - Random action is to be chosen with probability eps.
 
-        Args:
-            q_values: An numpy.ndarray that contains the q values of all available actions.
+       Args:
+            q_values: An numpy.ndarray, whose ndim is 1 or 2, that contains the q values of all available actions.
 
         Returns:
-            An action (an integer).
+            An numpy.ndarray, whose ndim is (q_values.ndim - 1), of the chosen action(s).
         """
 
-        assert q_values.ndim == 1
-
-        if np.random.uniform() < self.epsilon:
-            action = np.random.choice(q_values.shape[0])
-        else:
-            action = np.argmax(q_values)
-        return action
+        return super(EpsilonGreedyPolicy, self).choose_action(q_values)
 
     def update(self, steps):
         """
