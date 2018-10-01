@@ -8,7 +8,7 @@ class DQNAgent(Agent):
     def __init__(self, model, memory, actions, **kwargs):
         super(DQNAgent, self).__init__(model, memory, actions, **kwargs)
 
-    def learn_from_memory(self, batch_size):
+    def learn_from_memory(self, batch_size, policy=None):
         states, actions, rewards, next_states, terminates = self.memory.sample(batch_size)
 
         target_q = rewards + self.model.get_max_q_values(next_states) * self.discount_factor * (1 - terminates)

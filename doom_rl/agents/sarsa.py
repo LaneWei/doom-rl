@@ -6,16 +6,17 @@ class ESARSAAgent(Agent):
     """
         sarsa algorithm implementation
     """
-    def __init__(self, model, memory, actions, epsilon=0, **kwargs):
+    def __init__(self, model, memory, actions, **kwargs):
         super(ESARSAAgent, self).__init__(model, memory, actions, **kwargs)
-        self.epsilon = epsilon
 
-    def learn_from_memory(self, batch_size):
+    def learn_from_memory(self, batch_size, policy=None):
         states, actions, rewards, next_states, terminates = self.memory.sample(batch_size)
 
-        eps = self.epsilon
+        distribution = policy.action_probs()
         q_values_next_state = self.model.get_q_values(next_states)
-        q_next_state = np.mean(q_values_next_state, axis=1) * eps + np.max(q_values_next_state, axis=1) * (1 - eps)
+        assert distribution.ndim == 1
+        assert distribution.shape == q_values_next_state.shape
 
+        q_next_state = np.sum(q_values_next_state * distribution)
         target_q = rewards + q_next_state * self.discount_factor * (1 - terminates)
         return self.model.train(states, actions, target_q)

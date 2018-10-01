@@ -76,13 +76,15 @@ class Agent:
         # assert action in self.action_space
         return action
 
-    def learn_from_memory(self, batch_size):
+    def learn_from_memory(self, batch_size, policy=None):
         """
         Perform a learning step. This agent will get a randomly chosen batch (see doom_rl.memory.Memory.sample for
         more information about how the batch is chosen) of experiences from its memory and learn to train its model.
 
         Args:
             batch_size: The expected size of the experience batch which will be used for agent's learning step.
+            policy: Default is none, however, an agent may require the information provided by a policy to
+            perform a learning step. (e.g., sarsa agent)
 
         Returns:
             The loss of this learning step.
