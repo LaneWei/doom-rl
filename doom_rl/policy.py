@@ -57,8 +57,8 @@ class GreedyPolicy(Policy):
 
         arg_max_q = np.argmax(q_values, axis=1)
         probs = np.zeros_like(q_values, dtype=np.float32)
-        probs[:, arg_max_q] = 1
-        return probs.squeeze()
+        probs[np.arange(len(arg_max_q)), arg_max_q] = 1
+        return probs.reshape(q_values.shape)
 
     def choose_action(self, q_values):
         """
@@ -108,8 +108,8 @@ class EpsilonGreedyPolicy(Policy):
         probs[:, :] = fill
 
         arg_max_q = np.argmax(q_values, axis=1)
-        probs[:, arg_max_q] += 1 - self.epsilon
-        return probs.squeeze()
+        probs[np.arange(len(arg_max_q)), arg_max_q] += 1 - self.epsilon
+        return probs.reshape(q_values.shape)
 
     def choose_action(self, q_values):
         """
