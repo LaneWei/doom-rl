@@ -15,9 +15,11 @@ root_path = dirname(dirname(os.getcwd()))
 sys.path.append(root_path)
 
 from doom_rl.agents.dqn import DQNAgent
+# from doom_rl.agents.sarsa import ESarsaAgent
 from doom_rl.envs.env import DoomGrayEnv
 from doom_rl.memory import ListMemory
 from doom_rl.models.tfmodels import SimpleTfModel
+# from doom_rl.models.kmodels import SimpleTfKerasModel
 from doom_rl.policy import EpsilonGreedyPolicy
 from doom_rl.utils import process_gray8_image, process_batch
 
@@ -91,18 +93,28 @@ if __name__ == '__main__':
     action_space = [list(a) for a in it.product([0, 1], repeat=nb_buttons) if a[0] != 1 or a[1] != 1]
     nb_actions = len(action_space)
 
-    # Agent's model
+    # Agent's model (pure tensorflow)
     model = SimpleTfModel(state_shape=input_shape,
                           nb_actions=nb_actions,
                           process_state_batch=process_batch)
 
+    # Simple tensorflow.keras model
+    # model = SimpleTfKerasModel(state_shape=input_shape,
+    #                            nb_actions=nb_actions,
+    #                            process_state_batch=process_batch)
+
     # Before using a model, it has to be compiled
     model.compile(learning_rate)
 
-    # The agent
+    # The agent (Q-learning)
     agent = DQNAgent(model=model,
                      memory=ListMemory(memory_capacity),
                      actions=action_space)
+
+    # Expected sarsa
+    # agent = ESarsaAgent(model=model,
+    #                     memory=ListMemory(memory_capacity),
+    #                     actions=action_space)
 
     print("The agent's action space has total {} actions:".format(nb_actions))
     print(action_space, end="\n\n")
@@ -172,8 +184,10 @@ if __name__ == '__main__':
             print("{} training episodes played.".format(epoch_metrics["played_episodes"]))
             print("Agent's memory size: {}".format(agent.memory.size))
             if len(epoch_metrics["losses"]) != 0:
-                print("mean loss: [{:.3f}]".format(np.mean(epoch_metrics["losses"])), end=' ')
+                print("mean loss: [{:.3f}±{:.3f}]".format(np.mean(epoch_metrics["losses"]),
+                                                          np.std(epoch_metrics["losses"])), end=' ')
             print("mean epsilon: [{:.3f}]".format(np.mean(epoch_metrics["epsilons"])))
+
             print("mean reward: [{:.2f}±{:.2f}]".format(np.mean(epoch_metrics["rewards"]),
                                                         np.std(epoch_metrics["rewards"])), end=' ')
             print("min: [{:.1f}] max:[{:.1f}]".format(np.min(epoch_metrics["rewards"]),
