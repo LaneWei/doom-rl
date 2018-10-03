@@ -32,16 +32,17 @@ class Policy:
             q_values: An numpy.ndarray, whose ndim is 1 or 2, that contains the q values of all available actions.
 
         Returns:
-            An numpy.ndarray, whose ndim is (q_values.ndim - 1), of the chosen action(s).
+            An integer or an numpy.ndarray, whose ndim is (q_values.ndim - 1), of the chosen action(s).
         """
 
-        if q_values.ndim == 1:
-            q_values = q_values.reshape(1, q_values.shape[0])
-        assert q_values.ndim == 2
+        assert q_values.ndim == 1 or q_values.ndim == 2
 
         action_probs = self.action_probs(q_values)
+        if q_values.ndim == 1:
+            return int(np.random.choice(range(len(q_values)), p=action_probs))
+
         actions = [np.random.choice(range(len(probs)), p=probs) for probs in action_probs]
-        return np.array(actions).squeeze()
+        return np.array(actions, dtype=np.int32)
 
 
 class GreedyPolicy(Policy):
@@ -52,7 +53,7 @@ class GreedyPolicy(Policy):
 
     def action_probs(self, q_values):
         if q_values.ndim == 1:
-            q_values = q_values.reshape(1, q_values.shape[0])
+            q_values = q_values.reshape(1, q_values.size)
         assert q_values.ndim == 2
 
         arg_max_q = np.argmax(q_values, axis=1)
@@ -103,10 +104,7 @@ class EpsilonGreedyPolicy(Policy):
             q_values = q_values.reshape(1, q_values.shape[0])
         assert q_values.ndim == 2
 
-        probs = np.zeros_like(q_values, dtype=np.float32)
-        fill = self.epsilon / q_values.shape[1]
-        probs[:, :] = fill
-
+        probs = np.ones_like(q_values, dtype=np.float32) * (self.epsilon / q_values.shape[1])
         arg_max_q = np.argmax(q_values, axis=1)
         probs[np.arange(len(arg_max_q)), arg_max_q] += 1 - self.epsilon
         return probs.reshape(q_values.shape)
