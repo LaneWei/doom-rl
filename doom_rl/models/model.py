@@ -1,4 +1,6 @@
+import numpy as np
 import tensorflow as tf
+import tensorflow.keras as tfk
 
 
 class Model:
@@ -206,9 +208,9 @@ class DQNTfModel(Model):
         assert self.s_input is None
         assert self.a_input is None
         assert self.target_q_values is None
-        self.s_input = tf.placeholder(tf.float32, shape=[None] + list(self.state_shape), name='State')
-        self.a_input = tf.placeholder(tf.int32, shape=[None], name='Action')
-        self.target_q_values = tf.placeholder(tf.float32, shape=[None], name='TargetQ')
+        self.s_input = tf.placeholder(tf.float32, shape=[None] + list(self.state_shape), name='InputState')
+        self.a_input = tf.placeholder(tf.int32, shape=[None], name='InputAction')
+        self.target_q_values = tf.placeholder(tf.float32, shape=[None], name='OutputTargetQ')
 
     def _create_operations(self):
         assert self._max_q_values is None
@@ -241,4 +243,75 @@ class DQNTfModel(Model):
 
 
 class DQNKerasModel(Model):
+    """
+    This is a half-implemented DQN model based on tensorflow.keras module. All abstract methods defined
+    in base class `Model` are implemented.
+    You can easily extend this class by just implementing `_build_network()` method in your subclass.
+
+    Args:
+        state_shape: The shape of input states, which indicates the input shape of this model's
+        input layer.
+        nb_actions: The number of actions that the agent can perform, which indicates the number of
+        units in this model's output layer.
+    """
     pass
+    """
+    def __init__(self, state_shape, nb_actions, **kwargs):
+        super(DQNKerasModel, self).__init__(**kwargs)
+        self.state_shape = state_shape
+        self.nb_actions = nb_actions
+
+        # Keras model
+        self._model = tfk.Model()
+
+        # State input of the network
+        self.s_input = tfk.Input(shape=self.state_shape, name="InputState")
+
+        # Action input, indicating the actions chosen under self.s_input
+        self.a_input = None
+
+        # Output q values, must be used in _build_network() method as the output of the network
+        self.q_values = None
+
+        # Optimizer
+        self._optimizer = None
+
+        # Operation nodes defined by _build_network() method
+        self._max_q_values = lambda q_values: np.max()
+        self._best_action = None
+        self._action_q_values = None
+        self._loss = None
+        self._train = None
+
+        # summary
+        # ...
+
+        self._model_created = False
+
+    def save_weights(self, save_path):
+        self.model.save_weights(save_path)
+
+    def load_weights(self, load_path):
+        self.model.load_weights(load_path)
+
+    def train(self, state, action, target_q):
+        history = self.model.fit(state, target_q, verbose=False)
+        return history["loss"]
+    
+    def get_best_action(self, state):
+        state = self.process_state_batch(state)
+        q_values = self.model.predict(state)
+        return self.session.run(self._best_action, {self.s_input: state})[0]
+
+    def get_q_values(self, state):
+        state = self.process_state_batch(state)
+        return self.session.run(self.q_values, {self.s_input: state})
+
+    def get_max_q_values(self, state):
+        state = self.process_state_batch(state)
+        return self.session.run(self._max_q_values, {self.s_input: state})
+
+    @property
+    def model(self):
+        return self._model
+    """
