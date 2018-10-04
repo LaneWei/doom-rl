@@ -52,6 +52,7 @@ class GreedyPolicy(Policy):
     """
 
     def action_probs(self, q_values):
+        shape = q_values.shape
         if q_values.ndim == 1:
             q_values = q_values.reshape(1, q_values.size)
         assert q_values.ndim == 2
@@ -59,7 +60,7 @@ class GreedyPolicy(Policy):
         arg_max_q = np.argmax(q_values, axis=1)
         probs = np.zeros_like(q_values, dtype=np.float32)
         probs[np.arange(len(arg_max_q)), arg_max_q] = 1
-        return probs.reshape(q_values.shape)
+        return probs.reshape(shape)
 
     def choose_action(self, q_values):
         """
@@ -100,6 +101,7 @@ class EpsilonGreedyPolicy(Policy):
             self._end_epsilon = self._start_epsilon
 
     def action_probs(self, q_values):
+        shape = q_values.shape
         if q_values.ndim == 1:
             q_values = q_values.reshape(1, q_values.shape[0])
         assert q_values.ndim == 2
@@ -107,7 +109,7 @@ class EpsilonGreedyPolicy(Policy):
         probs = np.ones_like(q_values, dtype=np.float32) * (self.epsilon / q_values.shape[1])
         arg_max_q = np.argmax(q_values, axis=1)
         probs[np.arange(len(arg_max_q)), arg_max_q] += 1 - self.epsilon
-        return probs.reshape(q_values.shape)
+        return probs.reshape(shape)
 
     def choose_action(self, q_values):
         """
