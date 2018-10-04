@@ -18,21 +18,22 @@ from doom_rl.agents.dqn import DQNAgent
 # from doom_rl.agents.sarsa import ESarsaAgent
 from doom_rl.envs.env import DoomGrayEnv
 from doom_rl.memory import ListMemory
-from doom_rl.models.tfmodels import SimpleTfModel
+# The SimplerTfModel is a toy model that is more computation friendly
+from doom_rl.models.tfmodels import SimpleTfModel, SimplerTfModel
 # from doom_rl.models.kmodels import SimpleTfKerasModel
 from doom_rl.policy import EpsilonGreedyPolicy
 from doom_rl.utils import process_gray8_image, process_batch
 
-memory_capacity = 40000
+memory_capacity = 20000
 learning_rate = 2.5e-4
-discount_factor = .99
+discount_factor = 0.99
 
 # Training epochs
 train_epochs = 40
 steps_per_epoch = 4000
 
 # Epsilon greedy policy settings.
-max_eps = 1.0
+max_eps = 0.8
 min_eps = 0.1
 decay_steps = train_epochs * steps_per_epoch
 
@@ -49,7 +50,7 @@ frame_repeat = 12
 
 # To make sure the agent can acquire more information, the input of the network contains
 # most recently continuous frames
-continuous_frames = 3
+continuous_frames = 2
 
 # The height and width of every input image
 image_shape = (42, 42)
@@ -94,7 +95,7 @@ if __name__ == '__main__':
     nb_actions = len(action_space)
 
     # Agent's model (pure tensorflow)
-    model = SimpleTfModel(state_shape=input_shape,
+    model = SimplerTfModel(state_shape=input_shape,
                           nb_actions=nb_actions,
                           process_state_batch=process_batch)
 
