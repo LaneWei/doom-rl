@@ -68,8 +68,11 @@ class TestEpsilonGreedyPolicy:
 
         with pytest.raises(ValueError):
             EpsilonGreedyPolicy(start_epsilon=0.8, end_epsilon=0.0, total_decay_steps=-1)
+        with pytest.raises(ValueError):
             EpsilonGreedyPolicy(start_epsilon=0.8, end_epsilon=-1)
+        with pytest.raises(ValueError):
             EpsilonGreedyPolicy(start_epsilon=1.5)
+        with pytest.raises(ValueError):
             EpsilonGreedyPolicy(start_epsilon=0.0, end_epsilon=0.8)
 
         decay_steps = 10
@@ -84,9 +87,8 @@ class TestEpsilonGreedyPolicy:
         policy1 = EpsilonGreedyPolicy(start_epsilon=0.35)
         policy2 = EpsilonGreedyPolicy(start_epsilon=np.random.random())
         policy2_epsilon = policy2.epsilon
-        print(policy2_epsilon)
         action_repeat = 10000
-        tolerance = 0.01
+        tolerance = 0.02
 
         q_values1 = np.array([1.0, 2.0, 2.5, 5.5, 3.0], dtype=np.float32)
         action_probs1_p1 = np.array([0.07, 0.07, 0.07, 0.72, 0.07], dtype=np.float32)
