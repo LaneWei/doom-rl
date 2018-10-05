@@ -92,9 +92,17 @@ class EpsilonGreedyPolicy(Policy):
 
     def __init__(self, start_epsilon=0., end_epsilon=0., total_decay_steps=1):
         super(EpsilonGreedyPolicy, self).__init__()
-        self._start_epsilon = start_epsilon if start_epsilon <= 1 else 1
-        self._end_epsilon = end_epsilon if end_epsilon >= 0 else 0
-        self._decay_steps = total_decay_steps if total_decay_steps > 0 else 1
+        if start_epsilon > 1:
+            raise ValueError("The start epsilon must be less than or equal to 1.")
+        if end_epsilon < 0:
+            raise ValueError("The end epsilon must be greater than or equal to 0.")
+        if start_epsilon < end_epsilon:
+            raise ValueError("The start epsilon must be greater than or equal to the end epsilon.")
+        if total_decay_steps < 0:
+            raise ValueError("The total number of decay steps can not be negative.")
+        self._start_epsilon = start_epsilon
+        self._end_epsilon = end_epsilon
+        self._decay_steps = total_decay_steps
         self._steps = 0
 
         if self._end_epsilon > self._start_epsilon:
@@ -143,4 +151,6 @@ class EpsilonGreedyPolicy(Policy):
 
     @property
     def epsilon(self):
+        if self._steps == self._decay_steps:
+            return self._end_epsilon
         return self._start_epsilon + float(self._steps / self._decay_steps) * (self._end_epsilon - self._start_epsilon)
