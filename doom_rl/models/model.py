@@ -109,7 +109,7 @@ class Model:
         pass
 
 
-class DQNTfModel(Model):
+class DqnTfModel(Model):
     """
     This is a half-implemented DQN model based on pure tensorflow. All abstract methods defined
     in base class `Model` are implemented.
@@ -123,7 +123,7 @@ class DQNTfModel(Model):
     """
 
     def __init__(self, state_shape, nb_actions, **kwargs):
-        super(DQNTfModel, self).__init__(**kwargs)
+        super(DqnTfModel, self).__init__(**kwargs)
         self.state_shape = state_shape
         self.nb_actions = nb_actions
 
@@ -230,7 +230,7 @@ class DQNTfModel(Model):
             Build the structure of your network. Use self.s_input as your network's input and self.q_values
             as your network's output. The number of units in the output layer is self.nb_actions.
         """
-        pass
+        raise NotImplementedError()
 
     @property
     def session(self):
@@ -242,76 +242,133 @@ class DQNTfModel(Model):
         return self._session
 
 
-class DQNKerasModel(Model):
-    """
-    This is a half-implemented DQN model based on tensorflow.keras module. All abstract methods defined
-    in base class `Model` are implemented.
-    You can easily extend this class by just implementing `_build_network()` method in your subclass.
-
-    Args:
-        state_shape: The shape of input states, which indicates the input shape of this model's
-        input layer.
-        nb_actions: The number of actions that the agent can perform, which indicates the number of
-        units in this model's output layer.
-    """
-    pass
-    """
-    def __init__(self, state_shape, nb_actions, **kwargs):
-        super(DQNKerasModel, self).__init__(**kwargs)
-        self.state_shape = state_shape
-        self.nb_actions = nb_actions
-
-        # Keras model
-        self._model = tfk.Model()
-
-        # State input of the network
-        self.s_input = tfk.Input(shape=self.state_shape, name="InputState")
-
-        # Action input, indicating the actions chosen under self.s_input
-        self.a_input = None
-
-        # Output q values, must be used in _build_network() method as the output of the network
-        self.q_values = None
-
-        # Optimizer
-        self._optimizer = None
-
-        # Operation nodes defined by _build_network() method
-        self._max_q_values = lambda q_values: np.max()
-        self._best_action = None
-        self._action_q_values = None
-        self._loss = None
-        self._train = None
-
-        # summary
-        # ...
-
-        self._model_created = False
-
-    def save_weights(self, save_path):
-        self.model.save_weights(save_path)
-
-    def load_weights(self, load_path):
-        self.model.load_weights(load_path)
-
-    def train(self, state, action, target_q):
-        history = self.model.fit(state, target_q, verbose=False)
-        return history["loss"]
-    
-    def get_best_action(self, state):
-        state = self.process_state_batch(state)
-        q_values = self.model.predict(state)
-        return self.session.run(self._best_action, {self.s_input: state})[0]
-
-    def get_q_values(self, state):
-        state = self.process_state_batch(state)
-        return self.session.run(self.q_values, {self.s_input: state})
-
-    def get_max_q_values(self, state):
-        state = self.process_state_batch(state)
-        return self.session.run(self._max_q_values, {self.s_input: state})
-
-    @property
-    def model(self):
-        return self._model
-    """
+# class DqnKerasModel(Model):
+#     """
+#     This is a half-implemented DQN model based on tensorflow.keras module. All abstract methods defined
+#     in base class `Model` are implemented.
+#     You can easily extend this class by just implementing `_build_network()` method in your subclass.
+#
+#     Args:
+#         state_shape: The shape of input states, which indicates the input shape of this model's
+#         input layer.
+#         nb_actions: The number of actions that the agent can perform, which indicates the number of
+#         units in this model's output layer.
+#     """
+#     def __init__(self, state_shape, nb_actions, **kwargs):
+#         super(DqnKerasModel, self).__init__(**kwargs)
+#         self.state_shape = state_shape
+#         self.nb_actions = nb_actions
+#
+#         # Keras model
+#         self._model = None
+#
+#         # Keras input layer and output layer
+#         self.input_layer = tfk.layers.Input(shape=self.state_shape, dtype="float32", name="InputLayer")
+#         self.output_layer = None
+#
+#         # Tensorflow session
+#         self._session = None
+#
+#         # State input of the network
+#         self.s_input = None
+#
+#         # Action input, indicating the actions chosen under self.s_input
+#         self.a_input = None
+#
+#         # Output q values, must be used in _build_network() method as the output of the network
+#         self.q_values = None
+#
+#         # Optimizer
+#         self._optimizer = None
+#
+#         # Operation nodes defined by _build_network() method
+#         self._max_q_values = None
+#         self._best_action = None
+#         self._action_q_values = None
+#         self._loss = None
+#         self._train = None
+#
+#         # summary
+#         # ...
+#
+#         self._model_created = False
+#
+#     def save_weights(self, save_path):
+#         self._model.save_weights(save_path)
+#
+#     def load_weights(self, load_path):
+#         self._model.load_weights(load_path)
+#
+#     def train(self, state, action, target_q):
+#         state = self.process_state_batch(state)
+#         l, _ = self.session.run([self._loss, self._train],
+#                                 {self.s_input: state, self.target_q_values: target_q, self.a_input: action})
+#         return l
+#
+#     def get_best_action(self, state):
+#         state = self.process_state_batch(state)
+#         return self.session.run(self._best_action, {self.s_input: state})[0]
+#
+#     def get_q_values(self, state):
+#         state = self.process_state_batch(state)
+#         return self.session.run(self.q_values, {self.s_input: state})
+#
+#     def get_max_q_values(self, state):
+#         state = self.process_state_batch(state)
+#         return self.session.run(self._max_q_values, {self.s_input: state})
+#
+#     def compile(self, learning_rate, optimizer='Adam', **kwargs):
+#         optimizer = optimizer.lower()
+#         optimizers = {'adam': tf.train.AdamOptimizer,
+#                       'rmsprop': tf.train.RMSPropOptimizer,
+#                       'sgd': tf.train.GradientDescentOptimizer}
+#         if optimizer not in optimizers:
+#             raise KeyError('Invalid optimizer {}.'.format(optimizer))
+#
+#         if not self._model_created:
+#             self._create_placeholders()
+#             self._build_network()
+#             # Check whether the output layer is defined
+#             assert self.output_layer is not None, 'The output of the network is not defined.'
+#
+#             self._create_operations()
+#             self._model_created = True
+#
+#         self._optimizer = optimizers[optimizer](learning_rate=learning_rate, **kwargs)
+#         self._train = self._optimizer.minimize(self._loss)
+#
+#     def _build_network(self):
+#         """
+#         Build the model's network. (Example implementation in doom_rl.models.kmodels.SimpleKerasModel)
+#
+#         To implement this method you should:
+#             Build the structure of your network. Use self.input_layer as your network's input and self.output_layer
+#             as your network's output. The number of units in the output layer is self.nb_actions.
+#         """
+#         raise NotImplementedError()
+#
+#     def _create_placeholders(self):
+#         assert not self._model_created
+#
+#         self.s_input = tf.placeholder(tf.float32, shape=[None] + list(self.state_shape), name='InputState')
+#         self.a_input = tf.placeholder(tf.int32, shape=[None], name='InputAction')
+#         self.target_q_values = tf.placeholder(tf.float32, shape=[None], name='OutputTargetQ')
+#
+#     def _create_operations(self):
+#         assert not self._model_created
+#
+#         self._model = tfk.models.Model(inputs=self.input_layer, outputs=self.output_layer)
+#         self.q_values = self._model(self.s_input)
+#         self._max_q_values = tf.reduce_max(self.q_values, axis=1)
+#         self._best_action = tf.argmax(self.q_values, axis=1)
+#         self._action_q_values = tf.reduce_sum(self.q_values * tf.one_hot(self.a_input, self.nb_actions), axis=1)
+#         self._loss = tf.losses.mean_squared_error(self._action_q_values, self.target_q_values)
+#
+#     @property
+#     def session(self):
+#         if not self._model_created:
+#             raise RuntimeError('A model must be compiled before performing any operations.')
+#         if self._session is None:
+#             self._session = tf.Session()
+#             self._session.run(tf.global_variables_initializer())
+#         return self._session

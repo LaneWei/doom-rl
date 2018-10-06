@@ -110,3 +110,4 @@ venv.bak/
 # ignore weights files
 **/weights
 
+**/log

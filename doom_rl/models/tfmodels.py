@@ -1,14 +1,13 @@
-from doom_rl.models.model import DQNTfModel
+from doom_rl.models.model import DqnTfModel
 import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 from tensorflow.layers import conv2d, dense
 from tensorflow.nn import relu
 
 
-class SimpleTfModel(DQNTfModel):
+class SimpleTfModel(DqnTfModel):
     def __init__(self, state_shape, nb_actions, process_state_batch):
-        super(SimpleTfModel, self).__init__(state_shape, nb_actions,
-                                            process_state_batch=process_state_batch)
+        super(SimpleTfModel, self).__init__(state_shape, nb_actions, process_state_batch=process_state_batch)
 
     def _build_network(self):
         conv1 = conv2d(self.s_input, 24, 6, strides=(3, 3), activation=relu,
@@ -26,11 +25,11 @@ class SimpleTfModel(DQNTfModel):
                               kernel_initializer=tf.contrib.layers.xavier_initializer(),
                               bias_initializer=tf.constant_initializer(0.01))
 
+
 # A toy model which requires less computation
-class SimplerTfModel(DQNTfModel):
+class SimplerTfModel(DqnTfModel):
     def __init__(self, state_shape, nb_actions, process_state_batch):
-        super(SimplerTfModel, self).__init__(state_shape, nb_actions,
-                                            process_state_batch=process_state_batch)
+        super(SimplerTfModel, self).__init__(state_shape, nb_actions, process_state_batch=process_state_batch)
 
     def _build_network(self):
         conv1 = conv2d(self.s_input, 6, 6, strides=(3, 3), activation=relu,
