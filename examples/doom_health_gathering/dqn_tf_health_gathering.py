@@ -15,21 +15,68 @@ root_path = dirname(dirname(os.getcwd()))
 sys.path.append(root_path)
 
 from doom_rl.agents.dqn import DQNAgent
-# from doom_rl.agents.sarsa import ESarsaAgent
 from doom_rl.envs.env import DoomGrayEnv
 from doom_rl.memory import ListMemory
-# The SimplerTfModel is a toy model that is more computation friendly
-from doom_rl.models.tfmodels import SimpleTfModel, SimplerTfModel
-# from doom_rl.models.kmodels import SimpleTfKerasModel
+from doom_rl.models.model import DqnTfModel
 from doom_rl.policy import EpsilonGreedyPolicy
 from doom_rl.utils import process_gray8_image, process_batch
+import tensorflow as tf
+from tensorflow.contrib.layers import flatten
+from tensorflow.layers import conv2d, dense
+from tensorflow.nn import relu
 
-memory_capacity = 20000
+
+# The model for health gathering scenario
+# class HGModel(DqnTfModel):
+#     def __init__(self, state_shape, n_actions, process_state_batch):
+#         super(HGModel, self).__init__(state_shape, n_actions, process_state_batch=process_state_batch)
+#
+#     def _build_network(self):
+#         conv1 = conv2d(self.s_input, 12, 7, strides=(3, 3), activation=relu,
+#                        kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+#                        bias_initializer=tf.constant_initializer(0.01), name='ConvLayer1')
+#         conv2 = conv2d(conv1, 24, 4, strides=(2, 2), activation=relu,
+#                        kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+#                        bias_initializer=tf.constant_initializer(0.01), name='ConvLayer2')
+#         conv3 = conv2d(conv2, 48, 3, strides=(2, 2), activation=relu,
+#                        kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+#                        bias_initializer=tf.constant_initializer(0.01), name='ConvLayer3')
+#         conv_flat = flatten(conv3)
+#         fc1 = dense(conv_flat, 64, activation=relu,
+#                     kernel_initializer=tf.contrib.layers.xavier_initializer(),
+#                     bias_initializer=tf.constant_initializer(0.01), name='FullyConnected1')
+#
+#         self.q_values = dense(fc1, self.nb_actions, activation=None,
+#                               kernel_initializer=tf.contrib.layers.xavier_initializer(),
+#                               bias_initializer=tf.constant_initializer(0.01))
+
+class HGModel(DqnTfModel):
+    def __init__(self, state_shape, n_actions, process_state_batch):
+        super(HGModel, self).__init__(state_shape, n_actions, process_state_batch=process_state_batch)
+
+    def _build_network(self):
+        conv1 = conv2d(self.s_input, 16, 8, strides=(4, 4), activation=relu,
+                       kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+                       bias_initializer=tf.constant_initializer(0.01), name='ConvLayer1')
+        conv2 = conv2d(conv1, 32, 5, strides=(2, 2), activation=relu,
+                       kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+                       bias_initializer=tf.constant_initializer(0.01), name='ConvLayer2')
+        conv_flat = flatten(conv2)
+        fc1 = dense(conv_flat, 64, activation=relu,
+                    kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                    bias_initializer=tf.constant_initializer(0.01), name='FullyConnected1')
+
+        self.q_values = dense(fc1, self.nb_actions, activation=None,
+                              kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                              bias_initializer=tf.constant_initializer(0.01))
+
+
+memory_capacity = 40000
 learning_rate = 2.5e-4
-discount_factor = 0.99
+discount_factor = 0.95
 
 # Training epochs
-train_epochs = 40
+train_epochs = 80
 steps_per_epoch = 4000
 
 # Epsilon greedy policy settings.
@@ -40,20 +87,20 @@ decay_steps = train_epochs * steps_per_epoch
 # During warm up, the agent will not perform learning steps
 warm_up_steps = 4000
 train_visualize = False
-test_epochs = 10
+test_epochs = 3
 test_visualize = True
 
 batch_size = 32
 
 # The number of frames that the agent will skip before taking another action
-frame_repeat = 12
+frame_repeat = 8
 
 # To make sure the agent can acquire more information, the input of the network contains
 # most recently continuous frames
-continuous_frames = 2
+continuous_frames = 3
 
 # The height and width of every input image
-image_shape = (42, 42)
+image_shape = (64, 64)
 
 # A rectangular region of the image to be cropped
 image_crop = (0, 0, 320, 200)
@@ -62,18 +109,18 @@ image_crop = (0, 0, 320, 200)
 input_shape = image_shape + (continuous_frames,)
 image_gray_scale_level = 32
 
-load_weights = False
+load_weights = True
 log_weights = True
 
 # Log the weights of agent's network after log_weights_epochs epochs
-log_weights_epochs = 10
+log_weights_epochs = 5
 
 # All weights files are saved to "weight" folder
 if not os.path.isdir("weights"):
     os.mkdir("weights")
-weights_load_path = join("weights", "dqn_doom_basic.ckpt")
-weights_save_path = join("weights", "dqn_doom_basic.ckpt")
-config_path = join("..", "configuration", "doom_config", "basic.cfg")
+weights_load_path = join("weights", "dqn_doom_health_gathering.ckpt")
+weights_save_path = join("weights", "dqn_doom_health_gathering.ckpt")
+config_path = join("..", "configuration", "doom_config", "health_gathering.cfg")
 
 
 if __name__ == '__main__':
@@ -95,14 +142,9 @@ if __name__ == '__main__':
     nb_actions = len(action_space)
 
     # Agent's model (pure tensorflow)
-    model = SimpleTfModel(state_shape=input_shape,
-                          nb_actions=nb_actions,
-                          process_state_batch=process_batch)
-
-    # Simple tensorflow.keras model
-    # model = SimpleTfKerasModel(state_shape=input_shape,
-    #                            nb_actions=nb_actions,
-    #                            process_state_batch=process_batch)
+    model = HGModel(state_shape=input_shape,
+                    n_actions=nb_actions,
+                    process_state_batch=process_batch)
 
     # Before using a model, it has to be compiled
     model.compile(learning_rate)
@@ -117,7 +159,7 @@ if __name__ == '__main__':
     #                     memory=ListMemory(memory_capacity),
     #                     actions=action_space)
 
-    print("The agent's action space has total {} actions:".format(nb_actions))
+    print("\n\nThe agent's action space has {} actions:".format(nb_actions))
     print(action_space, end="\n\n")
     if load_weights:
         agent.model.load_weights(weights_load_path)
@@ -157,8 +199,7 @@ if __name__ == '__main__':
                 a_id = agent.get_action_id(a)
 
                 # Take one step in the environment
-                s_, r, terminate, _ = env.step(a, frame_repeat=frame_repeat,
-                                               reward_discount=True)
+                s_, r, terminate, _ = env.step(a, frame_repeat=frame_repeat, reward_discount=True)
 
                 # Save this experience
                 agent.save_experience(s, a_id, r, s_, terminate)
@@ -211,6 +252,8 @@ if __name__ == '__main__':
     print('\nStart testing\n')
     # Start testing
     # The agent now follows greedy policy.
+    import vizdoom as vzd
+    env.game.set_mode(vzd.Mode.SPECTATOR)
     env.set_window_visible(test_visualize)
     rewards = []
     for episode in range(test_epochs):

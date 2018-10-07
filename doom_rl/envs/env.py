@@ -61,8 +61,7 @@ class DoomGrayEnv:
         success = self.game.load_config(path)
         self.game.set_screen_format(vzd.ScreenFormat.GRAY8)
         if verbose:
-            print("Success" if success else "Fail", end=" ")
-            print("to load configuration file from {}.\n\n".format(abspath(path)))
+            print("Loading configuration file from {}...\n\n".format(abspath(path)))
         return success
 
     def reset(self):
