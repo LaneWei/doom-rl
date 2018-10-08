@@ -88,7 +88,7 @@ image_crop = (0, 60, 640, 410)
 input_shape = image_shape + (continuous_frames,)
 image_gray_scale_level = 64
 
-load_weights = True
+load_weights = False
 log_weights = True
 
 # Log the weights of agent's network after log_weights_epochs epochs
@@ -99,7 +99,7 @@ if not os.path.isdir("weights"):
     os.mkdir("weights")
 weights_load_path = join("weights", "dqn_health_gathering_hard.ckpt")
 weights_save_path = join("weights", "dqn_health_gathering_hard.ckpt")
-config_path = join("..", "configuration", "doom_config", "health_gathering_hard.cfg")
+config_path = join("..", "doom_configuration", "doom_config", "health_gathering_hard.cfg")
 
 
 if __name__ == '__main__':

@@ -73,7 +73,7 @@ if not os.path.isdir("weights"):
     os.mkdir("weights")
 weights_load_path = join("weights", "dqn_doom_basic.ckpt")
 weights_save_path = join("weights", "dqn_doom_basic.ckpt")
-config_path = join("..", "configuration", "doom_config", "basic.cfg")
+config_path = join("..", "doom_configuration", "doom_config", "basic.cfg")
 
 
 if __name__ == '__main__':
