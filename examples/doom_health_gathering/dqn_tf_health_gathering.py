@@ -26,42 +26,21 @@ from tensorflow.layers import conv2d, dense
 from tensorflow.nn import relu
 
 
-# The model for health gathering scenario
-# class HGModel(DqnTfModel):
-#     def __init__(self, state_shape, n_actions, process_state_batch):
-#         super(HGModel, self).__init__(state_shape, n_actions, process_state_batch=process_state_batch)
-#
-#     def _build_network(self):
-#         conv1 = conv2d(self.s_input, 12, 7, strides=(3, 3), activation=relu,
-#                        kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
-#                        bias_initializer=tf.constant_initializer(0.01), name='ConvLayer1')
-#         conv2 = conv2d(conv1, 24, 4, strides=(2, 2), activation=relu,
-#                        kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
-#                        bias_initializer=tf.constant_initializer(0.01), name='ConvLayer2')
-#         conv3 = conv2d(conv2, 48, 3, strides=(2, 2), activation=relu,
-#                        kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
-#                        bias_initializer=tf.constant_initializer(0.01), name='ConvLayer3')
-#         conv_flat = flatten(conv3)
-#         fc1 = dense(conv_flat, 64, activation=relu,
-#                     kernel_initializer=tf.contrib.layers.xavier_initializer(),
-#                     bias_initializer=tf.constant_initializer(0.01), name='FullyConnected1')
-#
-#         self.q_values = dense(fc1, self.nb_actions, activation=None,
-#                               kernel_initializer=tf.contrib.layers.xavier_initializer(),
-#                               bias_initializer=tf.constant_initializer(0.01))
-
 class HGModel(DqnTfModel):
     def __init__(self, state_shape, n_actions, process_state_batch):
         super(HGModel, self).__init__(state_shape, n_actions, process_state_batch=process_state_batch)
 
     def _build_network(self):
-        conv1 = conv2d(self.s_input, 16, 8, strides=(4, 4), activation=relu,
+        conv1 = conv2d(self.s_input, 12, 8, strides=(4, 4), activation=relu,
                        kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
                        bias_initializer=tf.constant_initializer(0.01), name='ConvLayer1')
-        conv2 = conv2d(conv1, 32, 5, strides=(2, 2), activation=relu,
+        conv2 = conv2d(conv1, 24, 4, strides=(2, 2), activation=relu,
                        kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
                        bias_initializer=tf.constant_initializer(0.01), name='ConvLayer2')
-        conv_flat = flatten(conv2)
+        conv3 = conv2d(conv2, 32, 3, strides=(2, 2), activation=relu,
+                       kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+                       bias_initializer=tf.constant_initializer(0.01), name='ConvLayer3')
+        conv_flat = flatten(conv3)
         fc1 = dense(conv_flat, 64, activation=relu,
                     kernel_initializer=tf.contrib.layers.xavier_initializer(),
                     bias_initializer=tf.constant_initializer(0.01), name='FullyConnected1')
@@ -71,7 +50,7 @@ class HGModel(DqnTfModel):
                               bias_initializer=tf.constant_initializer(0.01))
 
 
-memory_capacity = 40000
+memory_capacity = 20000
 learning_rate = 2.5e-4
 discount_factor = 0.95
 
@@ -90,7 +69,7 @@ train_visualize = False
 test_epochs = 3
 test_visualize = True
 
-batch_size = 32
+batch_size = 24
 
 # The number of frames that the agent will skip before taking another action
 frame_repeat = 8
@@ -100,14 +79,14 @@ frame_repeat = 8
 continuous_frames = 3
 
 # The height and width of every input image
-image_shape = (64, 64)
+image_shape = (84, 84)
 
 # A rectangular region of the image to be cropped
-image_crop = (0, 0, 320, 200)
+image_crop = (0, 60, 640, 410)
 
 # The input shape of the network should be (batch_size, height, width, frames)
 input_shape = image_shape + (continuous_frames,)
-image_gray_scale_level = 32
+image_gray_scale_level = 64
 
 load_weights = True
 log_weights = True
@@ -118,9 +97,9 @@ log_weights_epochs = 5
 # All weights files are saved to "weight" folder
 if not os.path.isdir("weights"):
     os.mkdir("weights")
-weights_load_path = join("weights", "dqn_doom_health_gathering.ckpt")
-weights_save_path = join("weights", "dqn_doom_health_gathering.ckpt")
-config_path = join("..", "configuration", "doom_config", "health_gathering.cfg")
+weights_load_path = join("weights", "dqn_health_gathering_hard.ckpt")
+weights_save_path = join("weights", "dqn_health_gathering_hard.ckpt")
+config_path = join("..", "configuration", "doom_config", "health_gathering_hard.cfg")
 
 
 if __name__ == '__main__':
@@ -252,8 +231,8 @@ if __name__ == '__main__':
     print('\nStart testing\n')
     # Start testing
     # The agent now follows greedy policy.
-    import vizdoom as vzd
-    env.game.set_mode(vzd.Mode.SPECTATOR)
+    # import vizdoom as vzd
+    # env.game.set_mode(vzd.Mode.SPECTATOR)
     env.set_window_visible(test_visualize)
     rewards = []
     for episode in range(test_epochs):
@@ -270,7 +249,7 @@ if __name__ == '__main__':
                 reward += r
                 if terminate:
                     break
-                sleep(0.025)
+                sleep(0.015)
             print('q_values', agent.get_q_values(s), end=' ')
             print('action: ', a_id + 1, ", ", a, end=' ')
             print('reward: ', reward)
