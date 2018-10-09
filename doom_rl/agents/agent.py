@@ -1,6 +1,7 @@
 from doom_rl.memory import Memory
 from doom_rl.models.model import Model
 from doom_rl.policy import GreedyPolicy
+from doom_rl.utils import process_batch
 import numpy as np
 
 
@@ -15,18 +16,12 @@ class Agent:
         model: A compiled nn model. (`Model` instance).
         memory: Agent's memory (`Memory` instance).
         actions: A list of actions that this agent can take. (May be different from env.action_space)
-        discount_factor: The discount factor that will be applied to the learning process.
     """
 
-    def __init__(self, model, memory, actions, discount_factor=0.95):
+    def __init__(self, model, memory, actions):
         self._model = model
         self._memory = memory
         self._action_space = actions
-        # self._lr = None
-        self._gamma = None
-
-        # self.learning_rate = learning_rate
-        self.discount_factor = discount_factor
 
     def get_q_values(self, state):
         """
@@ -38,8 +33,8 @@ class Agent:
         Returns:
             An numpy.ndarray, containing the q values.
         """
-
-        return np.asarray(self.model.get_q_values([state])[0], dtype=np.float32)
+        state = process_batch([state])
+        return np.asarray(self.model.get_q_values(state)[0], dtype=np.float32)
 
     def get_action_id(self, action):
         """
@@ -123,13 +118,3 @@ class Agent:
     @property
     def action_space(self):
         return list(self._action_space)
-
-    @property
-    def discount_factor(self):
-        return self._gamma
-
-    @discount_factor.setter
-    def discount_factor(self, value):
-        if value < 0:
-            raise ValueError('The value of discount factor should always be non-negative.')
-        self._gamma = value
