@@ -10,7 +10,7 @@ from time import time, sleep
 import sys
 import os
 from os.path import join, dirname
-os.chdir(dirname(__file__))
+os.chdir(dirname(os.path.abspath(__file__)))
 root_path = dirname(dirname(os.getcwd()))
 sys.path.append(root_path)
 
@@ -31,13 +31,13 @@ class HGModel(DqnTfModel):
         super(HGModel, self).__init__(state_shape, n_actions, process_state_batch=process_state_batch)
 
     def _build_network(self):
-        conv1 = conv2d(self.s_input, 12, 8, strides=(4, 4), activation=relu,
+        conv1 = conv2d(self.s_input, 16, 8, strides=(4, 4), activation=relu,
                        kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
                        bias_initializer=tf.constant_initializer(0.01), name='ConvLayer1')
-        conv2 = conv2d(conv1, 24, 4, strides=(2, 2), activation=relu,
+        conv2 = conv2d(conv1, 24, 5, strides=(3, 3), activation=relu,
                        kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
                        bias_initializer=tf.constant_initializer(0.01), name='ConvLayer2')
-        conv3 = conv2d(conv2, 32, 3, strides=(2, 2), activation=relu,
+        conv3 = conv2d(conv2, 32, 3, strides=(1, 1), activation=relu,
                        kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
                        bias_initializer=tf.constant_initializer(0.01), name='ConvLayer3')
         conv_flat = flatten(conv3)
@@ -69,7 +69,7 @@ train_visualize = False
 test_epochs = 3
 test_visualize = True
 
-batch_size = 24
+batch_size = 32
 
 # The number of frames that the agent will skip before taking another action
 frame_repeat = 8
@@ -79,14 +79,14 @@ frame_repeat = 8
 continuous_frames = 3
 
 # The height and width of every input image
-image_shape = (84, 84)
+image_shape = (96, 96)
 
 # A rectangular region of the image to be cropped
-image_crop = (0, 60, 640, 410)
+image_crop = (0, 80, 640, 410)
 
 # The input shape of the network should be (batch_size, height, width, frames)
 input_shape = image_shape + (continuous_frames,)
-image_gray_scale_level = 64
+image_gray_scale_level = 16
 
 load_weights = False
 log_weights = True
@@ -99,7 +99,7 @@ if not os.path.isdir("weights"):
     os.mkdir("weights")
 weights_load_path = join("weights", "dqn_health_gathering_hard.ckpt")
 weights_save_path = join("weights", "dqn_health_gathering_hard.ckpt")
-config_path = join("..", "doom_configuration", "doom_config", "health_gathering_hard.cfg")
+config_path = join("..", "doom_configuration", "doom_config", "health_gathering.cfg")
 
 
 if __name__ == '__main__':
