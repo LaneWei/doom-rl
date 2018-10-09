@@ -19,13 +19,7 @@ class Model:
         * `get_best_action`
         * `get_q_values` (optional)
         * `get_max_q_values` (optional)
-
-    Args:
-        process_state_batch: A function that takes a batch of states as input,
-        then pre-processes the batch of states and returns the processed batch.
     """
-    def __init__(self, process_state_batch=lambda x: x):
-        self.process_state_batch = process_state_batch
 
     def compile(self, learning_rate, optimizer='Adam', **kwargs):
         """
@@ -57,54 +51,56 @@ class Model:
         """
         raise NotImplementedError()
 
-    def train(self, state, action, target_q):
+    def train(self, states, actions, rewards, next_states, terminates):
         """
         Perform a learning step to train this model.
 
         Args:
-            state: A batch of states.
-            action: A batch of actions.
-            target_q: Target q values.
+            states: A batch of states.
+            actions: A batch of actions.
+            rewards: A batch of rewards.
+            next_states: A batch of next states.
+            terminates: Termination flags.
 
         Returns:
             The calculated loss of this training step.
         """
         raise NotImplementedError()
 
-    def get_best_action(self, state):
+    def get_best_action(self, states):
         """
         Given the current state as input, get the best action (with the highest q value)
         according to this model's network.
 
         Args:
-            state: The current state.
+            states: A batch of current states.
 
         Returns:
-            An integer representing the the action with the highest q value.
+            A list of actions, represented by integers, with the highest q value.
         """
         raise NotImplementedError()
 
-    def get_q_values(self, state):
+    def get_q_values(self, states):
         """
         Get the q values of all actions at a given state.
 
         Args:
-            state: The current state.
+            states: A batch of current states.
 
         Returns:
             A list containing the q values of all actions.
         """
         pass
 
-    def get_max_q_values(self, state):
+    def get_max_q_values(self, states):
         """
         Get the highest q value at a given state.
 
         Args:
-            state: The given state.
+            states: A batch of states.
 
         Returns:
-            The highest q value at the given state.
+            The corresponding highest q values at the given states.
         """
         pass
 
@@ -120,37 +116,58 @@ class DqnTfModel(Model):
         input layer.
         nb_actions: The number of actions that the agent can perform, which indicates the number of
         units in this model's output layer.
+        enable_ddqn: Enable double dqn.
     """
 
-    def __init__(self, state_shape, nb_actions, **kwargs):
+    def __init__(self, state_shape, nb_actions, discount_factor, update_steps=1000, enable_ddqn=True, **kwargs):
         super(DqnTfModel, self).__init__(**kwargs)
         self.state_shape = state_shape
         self.nb_actions = nb_actions
+        self.gamma = discount_factor
+        self.update_steps = update_steps
+        self.ddqn = enable_ddqn
+        self.steps = 0
 
         # Tensorflow session
         self._session = None
 
-        # State input of the network
-        self.s_input = None
+        # State input of the network, a placeholder in the computation graph
+        self.s_input = tf.placeholder(tf.float32, shape=[None] + list(self.state_shape), name='In_State')
 
-        # Action input, indicating the actions chosen under self.s_input
-        self.a_input = None
+        # Action input, a placeholder, indicating the actions chosen under self.s_input
+        self.a_input = tf.placeholder(tf.int32, shape=[None], name='In_Action')
 
-        # Target q values, for calculating the loss
-        self.target_q_values = None
+        # Target q values for updating the training network
+        self.train_target_q = tf.placeholder(tf.float32, shape=[None], name='Train_TargetQ')
 
-        # Output q values, must be used in _build_network() method as the output of the network
-        self.q_values = None
+        # An operation for updating the target network
+        self.update_target_network = None
 
-        # Optimizer
-        self._optimizer = None
+        self._train_network = {
+            'scope_name': 'TrainNetwork',
 
-        # Operation nodes defined by _build_network() method
-        self._max_q_values = None
-        self._best_action = None
-        self._action_q_values = None
-        self._loss = None
-        self._train = None
+            # Output q values of the training network
+            'q_values': None,
+            'optimizer': None,
+            'loss': None,
+            'Op': {
+                'max_q_values': None,
+                'best_actions': None,
+                'action_q_values': None,
+                'train': None
+            }
+        }
+
+        self._target_network = {
+            'scope_name': 'TrainNetwork',
+
+            # Output q values of the target network
+            'q_values': None,
+            'Op': {
+                'max_q_values': None,
+                'action_q_values': None,
+            }
+        }
 
         # summary
         # ...
@@ -163,26 +180,35 @@ class DqnTfModel(Model):
     def load_weights(self, load_path):
         tf.train.Saver().restore(self.session, load_path)
 
-    def train(self, state, action, target_q):
-        state = self.process_state_batch(state)
-        l, _ = self.session.run([self._loss, self._train],
-                                {self.s_input: state, self.target_q_values: target_q, self.a_input: action})
+    def train(self, states, actions, rewards, next_states, terminates):
+        self.steps = (self.steps + 1) % self.update_steps
+        if self.ddqn:
+            action_selections = self.session.run(self._train_network['Op']['best_actions'],
+                                                 feed_dict={self.s_input: next_states})
+            eval_q = self.session.run(self._target_network['Op']['action_q_values'],
+                                      feed_dict={self.s_input: next_states, self.a_input: action_selections})
+            train_target = rewards + self.gamma * eval_q * (1 - terminates)
+        else:
+            eval_q = self.session.run(self._target_network['Op']['max_q_values'],
+                                      feed_dict={self.s_input: next_states})
+            train_target = rewards + self.gamma * eval_q * (1 - terminates)
+        l, _ = self.session.run([self._train_network['loss'], self._train_network['Op']['train']],
+                                {self.s_input: states, self.train_target_q: train_target, self.a_input: actions})
+
+        if self.steps == 0:
+            self.session.run(self.update_target_network)
         return l
 
-    def get_best_action(self, state):
-        state = self.process_state_batch(state)
-        return self.session.run(self._best_action, {self.s_input: state})[0]
+    def get_best_action(self, states):
+        return self.session.run(self._train_network['Op']['best_action'], {self.s_input: states})
 
-    def get_q_values(self, state):
-        state = self.process_state_batch(state)
-        return self.session.run(self.q_values, {self.s_input: state})
+    def get_q_values(self, states):
+        return self.session.run(self._train_network['target_q'], {self.s_input: states})
 
-    def get_max_q_values(self, state):
-        state = self.process_state_batch(state)
-        return self.session.run(self._max_q_values, {self.s_input: state})
+    def get_max_q_values(self, states):
+        return self.session.run(self._train_network['Op']['max_q_values'], {self.s_input: states})
 
     def compile(self, learning_rate, optimizer='Adam', **kwargs):
-        optimizer = optimizer.lower()
         optimizers = {'adam': tf.train.AdamOptimizer,
                       'rmsprop': tf.train.RMSPropOptimizer,
                       'sgd': tf.train.GradientDescentOptimizer}
@@ -190,46 +216,61 @@ class DqnTfModel(Model):
             raise KeyError('Invalid optimizer {}.'.format(optimizer))
 
         if not self._model_created:
-            self._create_placeholders()
-            self._build_network()
-            # Check whether the definition for self.q_values is provided by self._build_network
-            assert self.q_values is not None, 'The output of the network is not defined.'
+            # Train network
+            with tf.name_scope(self._train_network['scope_name']):
+                with tf.variable_scope('NetLayers'):
+                    self._train_network['q_values'] = self._build_network()
+
+            # Target network
+            with tf.name_scope(self._target_network['scope_name']):
+                with tf.variable_scope('NetLayers'):
+                    self._target_network['q_values'] = self._build_network()
 
             self._create_operations()
             self._model_created = True
 
-        self._optimizer = optimizers[optimizer](learning_rate=learning_rate, **kwargs)
-        self._train = self._optimizer.minimize(self._loss)
+        opt = optimizers[optimizer.lower()](learning_rate, name=optimizer, **kwargs)
+        with tf.name_scope(self._train_network['scope_name']):
+            self._train_network['optimizer'] = opt
+            self._train_network['Op']['train'] = opt.minimize(self._train_network['loss'], name="TrainOp")
 
-        # Start session
-        print(self.session.run(tf.constant("Model compiled.")))
-
-    def _create_placeholders(self):
-        assert self.s_input is None
-        assert self.a_input is None
-        assert self.target_q_values is None
-        self.s_input = tf.placeholder(tf.float32, shape=[None] + list(self.state_shape), name='InputState')
-        self.a_input = tf.placeholder(tf.int32, shape=[None], name='InputAction')
-        self.target_q_values = tf.placeholder(tf.float32, shape=[None], name='OutputTargetQ')
+        # This also starts the session
+        tf.summary.FileWriter('log', self.session.graph)
 
     def _create_operations(self):
-        assert self._max_q_values is None
-        assert self._best_action is None
-        assert self._action_q_values is None
-        assert self._loss is None
-        self._max_q_values = tf.reduce_max(self.q_values, axis=1)
-        self._best_action = tf.argmax(self.q_values, axis=1)
-        self._action_q_values = tf.reduce_sum(self.q_values * tf.one_hot(self.a_input, self.nb_actions), axis=1)
-        self._loss = tf.losses.mean_squared_error(self._action_q_values, self.target_q_values)
+        train_op = self._train_network['Op']
+        train_q = self._train_network['q_values']
+        with tf.name_scope(self._train_network['scope_name']):
+            train_weights = tf.get_collection(tf.get_default_graph().TRAINABLE_VARIABLES, scope='NetLayers')
+            train_op['max_q_values'] = tf.reduce_max(train_q, axis=1, name='MaxQValues')
+            train_op['best_actions'] = tf.argmax(train_q, axis=1, name='BestActions')
+            train_op['action_q_values'] = tf.reduce_sum(train_q * tf.one_hot(self.a_input, self.nb_actions),
+                                                        axis=1, name='ActionQValues')
+            self._train_network['loss'] = tf.losses.mean_squared_error(train_op['action_q_values'], self.train_target_q)
+
+        target_op = self._target_network['Op']
+        target_q = self._target_network['q_values']
+        with tf.name_scope(self._target_network['scope_name']):
+            target_weights = tf.get_collection(tf.get_default_graph().TRAINABLE_VARIABLES, scope='NetLayers')
+            target_op['max_q_values'] = tf.reduce_max(target_q, axis=1, name='MaxQValues')
+            target_op['action_q_values'] = tf.reduce_sum(target_q * tf.one_hot(self.a_input, self.nb_actions),
+                                                         axis=1, name='ActionQValues')
+
+        self.update_target_network = [tf.assign(w_train, w_target, validate_shape=True)
+                                      for w_train, w_target in zip(train_weights, target_weights)]
 
     def _build_network(self):
         """
         Build the model's network. (Example implementation in doom_rl.models.tfmodels.SimpleTfModel)
 
         To implement this method you should:
-            Build the structure of your network. Use self.s_input as your network's input and self.q_values
-            as your network's output. The number of units in the output layer is self.nb_actions.
+            Build the structure of your network. Use self.s_input as your network's input and return
+            the output of the network. The number of units in the output layer is self.nb_actions.
+
+        Returns:
+            The output of the network.
         """
+
         raise NotImplementedError()
 
     @property
