@@ -159,7 +159,7 @@ class DqnTfModel(Model):
         }
 
         self._target_network = {
-            'scope_name': 'TrainNetwork',
+            'scope_name': 'TargetNetwork',
 
             # Output q values of the target network
             'q_values': None,
@@ -180,6 +180,12 @@ class DqnTfModel(Model):
     def load_weights(self, load_path):
         tf.train.Saver().restore(self.session, load_path)
 
+    def update_target(self):
+        """
+        Force to update the target network.
+        """
+        self.session.run(self.update_target_network)
+
     def train(self, states, actions, rewards, next_states, terminates):
         self.steps = (self.steps + 1) % self.update_steps
         if self.ddqn:
@@ -196,19 +202,20 @@ class DqnTfModel(Model):
                                 {self.s_input: states, self.train_target_q: train_target, self.a_input: actions})
 
         if self.steps == 0:
-            self.session.run(self.update_target_network)
+            self.update_target()
         return l
 
     def get_best_action(self, states):
         return self.session.run(self._train_network['Op']['best_action'], {self.s_input: states})
 
     def get_q_values(self, states):
-        return self.session.run(self._train_network['target_q'], {self.s_input: states})
+        return self.session.run(self._train_network['q_values'], {self.s_input: states})
 
     def get_max_q_values(self, states):
         return self.session.run(self._train_network['Op']['max_q_values'], {self.s_input: states})
 
     def compile(self, learning_rate, optimizer='Adam', **kwargs):
+        optimizer = optimizer.lower()
         optimizers = {'adam': tf.train.AdamOptimizer,
                       'rmsprop': tf.train.RMSPropOptimizer,
                       'sgd': tf.train.GradientDescentOptimizer}
@@ -217,20 +224,20 @@ class DqnTfModel(Model):
 
         if not self._model_created:
             # Train network
-            with tf.name_scope(self._train_network['scope_name']):
+            with tf.variable_scope(self._train_network['scope_name']):
                 with tf.variable_scope('NetLayers'):
                     self._train_network['q_values'] = self._build_network()
 
             # Target network
-            with tf.name_scope(self._target_network['scope_name']):
+            with tf.variable_scope(self._target_network['scope_name']):
                 with tf.variable_scope('NetLayers'):
                     self._target_network['q_values'] = self._build_network()
 
             self._create_operations()
             self._model_created = True
 
-        opt = optimizers[optimizer.lower()](learning_rate, name=optimizer, **kwargs)
-        with tf.name_scope(self._train_network['scope_name']):
+        opt = optimizers[optimizer](learning_rate, name=optimizer, **kwargs)
+        with tf.variable_scope(self._train_network['scope_name']):
             self._train_network['optimizer'] = opt
             self._train_network['Op']['train'] = opt.minimize(self._train_network['loss'], name="TrainOp")
 
@@ -240,8 +247,9 @@ class DqnTfModel(Model):
     def _create_operations(self):
         train_op = self._train_network['Op']
         train_q = self._train_network['q_values']
-        with tf.name_scope(self._train_network['scope_name']):
-            train_weights = tf.get_collection(tf.get_default_graph().TRAINABLE_VARIABLES, scope='NetLayers')
+        with tf.variable_scope(self._train_network['scope_name']):
+            train_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                              scope=self._train_network['scope_name'])
             train_op['max_q_values'] = tf.reduce_max(train_q, axis=1, name='MaxQValues')
             train_op['best_actions'] = tf.argmax(train_q, axis=1, name='BestActions')
             train_op['action_q_values'] = tf.reduce_sum(train_q * tf.one_hot(self.a_input, self.nb_actions),
@@ -251,7 +259,8 @@ class DqnTfModel(Model):
         target_op = self._target_network['Op']
         target_q = self._target_network['q_values']
         with tf.name_scope(self._target_network['scope_name']):
-            target_weights = tf.get_collection(tf.get_default_graph().TRAINABLE_VARIABLES, scope='NetLayers')
+            target_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                               scope=self._target_network['scope_name'])
             target_op['max_q_values'] = tf.reduce_max(target_q, axis=1, name='MaxQValues')
             target_op['action_q_values'] = tf.reduce_sum(target_q * tf.one_hot(self.a_input, self.nb_actions),
                                                          axis=1, name='ActionQValues')

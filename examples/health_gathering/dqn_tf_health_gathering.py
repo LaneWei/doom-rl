@@ -19,7 +19,7 @@ from doom_rl.envs.env import DoomGrayEnv
 from doom_rl.memory import ListMemory
 from doom_rl.models.model import DqnTfModel
 from doom_rl.policy import EpsilonGreedyPolicy
-from doom_rl.utils import process_gray8_image, process_batch
+from doom_rl.utils import process_gray8_image
 import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 from tensorflow.layers import conv2d, dense
@@ -27,8 +27,8 @@ from tensorflow.nn import relu
 
 
 class HGModel(DqnTfModel):
-    def __init__(self, state_shape, n_actions, process_state_batch):
-        super(HGModel, self).__init__(state_shape, n_actions, process_state_batch=process_state_batch)
+    def __init__(self, state_shape, n_actions, discount_factor):
+        super(HGModel, self).__init__(state_shape, n_actions, discount_factor)
 
     def _build_network(self):
         conv1 = conv2d(self.s_input, 16, 8, strides=(4, 4), activation=relu,
@@ -52,7 +52,7 @@ class HGModel(DqnTfModel):
 
 memory_capacity = 20000
 learning_rate = 2.5e-4
-discount_factor = 0.95
+gamma = 0.95
 
 # Training epochs
 train_epochs = 80
@@ -123,7 +123,7 @@ if __name__ == '__main__':
     # Agent's model (pure tensorflow)
     model = HGModel(state_shape=input_shape,
                     n_actions=nb_actions,
-                    process_state_batch=process_batch)
+                    discount_factor=gamma)
 
     # Before using a model, it has to be compiled
     model.compile(learning_rate)

@@ -10,7 +10,7 @@ from time import time, sleep
 import sys
 import os
 from os.path import join, dirname
-os.chdir(dirname(__file__))
+os.chdir(dirname(os.path.abspath(__file__)))
 root_path = dirname(dirname(os.getcwd()))
 sys.path.append(root_path)
 
@@ -18,11 +18,9 @@ from doom_rl.agents.dqn import DQNAgent
 # from doom_rl.agents.sarsa import ESarsaAgent
 from doom_rl.envs.env import DoomGrayEnv
 from doom_rl.memory import ListMemory
-# The SimplerTfModel is a toy model that is more computation friendly
-from doom_rl.models.tfmodels import SimpleTfModel, SimplerTfModel
-# from doom_rl.models.kmodels import SimpleTfKerasModel
+from doom_rl.models.tfmodels import SimpleTfModel
 from doom_rl.policy import EpsilonGreedyPolicy
-from doom_rl.utils import process_gray8_image, process_batch
+from doom_rl.utils import process_gray8_image
 
 memory_capacity = 20000
 learning_rate = 2.5e-4
@@ -97,7 +95,7 @@ if __name__ == '__main__':
     # Agent's model (pure tensorflow)
     model = SimpleTfModel(state_shape=input_shape,
                           nb_actions=nb_actions,
-                          process_state_batch=process_batch)
+                          discount_factor=discount_factor)
 
     # Simple tensorflow.keras model
     # model = SimpleTfKerasModel(state_shape=input_shape,
