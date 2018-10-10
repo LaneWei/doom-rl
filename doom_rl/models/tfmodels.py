@@ -6,8 +6,8 @@ from tensorflow.nn import relu
 
 
 class SimpleTfModel(DqnTfModel):
-    def __init__(self, state_shape, nb_actions, discount_factor):
-        super(SimpleTfModel, self).__init__(state_shape, nb_actions, discount_factor)
+    def __init__(self, state_shape, nb_actions, discount_factor, **kwargs):
+        super(SimpleTfModel, self).__init__(state_shape, nb_actions, discount_factor, **kwargs)
 
     def _build_network(self):
         conv1 = conv2d(self.s_input, 24, 6, strides=(3, 3), activation=relu,
