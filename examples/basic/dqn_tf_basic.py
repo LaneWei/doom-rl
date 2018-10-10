@@ -58,7 +58,7 @@ image_crop = (0, 0, 320, 200)
 
 # The input shape of the network should be (batch_size, height, width, frames)
 input_shape = image_shape + (continuous_frames,)
-image_gray_scale_level = 32
+image_gray_scale_level = 16
 
 load_weights = False
 log_weights = True
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     #                     memory=ListMemory(memory_capacity),
     #                     actions=action_space)
 
-    print("The agent's action space has total {} actions:".format(nb_actions))
+    print("\n\nThe agent's action space has {} actions:".format(nb_actions))
     print(action_space, end="\n\n")
     if load_weights:
         agent.model.load_weights(weights_load_path)

@@ -45,9 +45,10 @@ class HGModel(DqnTfModel):
                     kernel_initializer=tf.contrib.layers.xavier_initializer(),
                     bias_initializer=tf.constant_initializer(0.01), name='FullyConnected1')
 
-        self.q_values = dense(fc1, self.nb_actions, activation=None,
-                              kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                              bias_initializer=tf.constant_initializer(0.01))
+        output_layer = dense(fc1, self.nb_actions, activation=None,
+                             kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                             bias_initializer=tf.constant_initializer(0.01), name='QValues')
+        return output_layer
 
 
 memory_capacity = 20000

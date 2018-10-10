@@ -1,6 +1,5 @@
-import numpy as np
 import tensorflow as tf
-import tensorflow.keras as tfk
+from tensorflow.losses import mean_squared_error
 
 
 class Model:
@@ -116,16 +115,20 @@ class DqnTfModel(Model):
         input layer.
         nb_actions: The number of actions that the agent can perform, which indicates the number of
         units in this model's output layer.
+        discount_factor: The discount factor.
+        update_steps: The number of training steps before the target network is updated.
         enable_ddqn: Enable double dqn.
     """
 
-    def __init__(self, state_shape, nb_actions, discount_factor, update_steps=1000, enable_ddqn=True, **kwargs):
+    def __init__(self, state_shape, nb_actions, discount_factor, update_steps=20000, enable_ddqn=True, **kwargs):
         super(DqnTfModel, self).__init__(**kwargs)
         self.state_shape = state_shape
         self.nb_actions = nb_actions
         self.gamma = discount_factor
         self.update_steps = update_steps
         self.ddqn = enable_ddqn
+
+        # Training steps
         self.steps = 0
 
         # Tensorflow session
@@ -143,19 +146,19 @@ class DqnTfModel(Model):
         # An operation for updating the target network
         self.update_target_network = None
 
-        self._train_network = {
-            'scope_name': 'TrainNetwork',
+        self._predict_network = {
+            'scope_name': 'OnlineNetwork',
 
             # Output q values of the training network
             'q_values': None,
             'optimizer': None,
             'loss': None,
-            'Op': {
-                'max_q_values': None,
-                'best_actions': None,
-                'action_q_values': None,
-                'train': None
-            }
+
+            # Operations on the predict network
+            'max_q_values': None,
+            'best_actions': None,
+            'action_q_values': None,
+            'train': None
         }
 
         self._target_network = {
@@ -163,10 +166,10 @@ class DqnTfModel(Model):
 
             # Output q values of the target network
             'q_values': None,
-            'Op': {
-                'max_q_values': None,
-                'action_q_values': None,
-            }
+
+            # Operations on the target network
+            'max_q_values': None,
+            'action_q_values': None,
         }
 
         # summary
@@ -189,16 +192,16 @@ class DqnTfModel(Model):
     def train(self, states, actions, rewards, next_states, terminates):
         self.steps = (self.steps + 1) % self.update_steps
         if self.ddqn:
-            action_selections = self.session.run(self._train_network['Op']['best_actions'],
+            action_selections = self.session.run(self._predict_network['best_actions'],
                                                  feed_dict={self.s_input: next_states})
-            eval_q = self.session.run(self._target_network['Op']['action_q_values'],
+            eval_q = self.session.run(self._target_network['action_q_values'],
                                       feed_dict={self.s_input: next_states, self.a_input: action_selections})
             train_target = rewards + self.gamma * eval_q * (1 - terminates)
         else:
-            eval_q = self.session.run(self._target_network['Op']['max_q_values'],
+            eval_q = self.session.run(self._target_network['max_q_values'],
                                       feed_dict={self.s_input: next_states})
             train_target = rewards + self.gamma * eval_q * (1 - terminates)
-        l, _ = self.session.run([self._train_network['loss'], self._train_network['Op']['train']],
+        l, _ = self.session.run([self._predict_network['loss'], self._predict_network['train']],
                                 {self.s_input: states, self.train_target_q: train_target, self.a_input: actions})
 
         if self.steps == 0:
@@ -206,27 +209,26 @@ class DqnTfModel(Model):
         return l
 
     def get_best_action(self, states):
-        return self.session.run(self._train_network['Op']['best_action'], {self.s_input: states})
+        return self.session.run(self._predict_network['best_action'], {self.s_input: states})
 
     def get_q_values(self, states):
-        return self.session.run(self._train_network['q_values'], {self.s_input: states})
+        return self.session.run(self._predict_network['q_values'], {self.s_input: states})
 
     def get_max_q_values(self, states):
-        return self.session.run(self._train_network['Op']['max_q_values'], {self.s_input: states})
+        return self.session.run(self._predict_network['max_q_values'], {self.s_input: states})
 
     def compile(self, learning_rate, optimizer='Adam', **kwargs):
-        optimizer = optimizer.lower()
         optimizers = {'adam': tf.train.AdamOptimizer,
                       'rmsprop': tf.train.RMSPropOptimizer,
                       'sgd': tf.train.GradientDescentOptimizer}
-        if optimizer not in optimizers:
+        if optimizer.lower() not in optimizers:
             raise KeyError('Invalid optimizer {}.'.format(optimizer))
 
         if not self._model_created:
             # Train network
-            with tf.variable_scope(self._train_network['scope_name']):
+            with tf.variable_scope(self._predict_network['scope_name']):
                 with tf.variable_scope('NetLayers'):
-                    self._train_network['q_values'] = self._build_network()
+                    self._predict_network['q_values'] = self._build_network()
 
             # Target network
             with tf.variable_scope(self._target_network['scope_name']):
@@ -236,37 +238,35 @@ class DqnTfModel(Model):
             self._create_operations()
             self._model_created = True
 
-        opt = optimizers[optimizer](learning_rate, name=optimizer, **kwargs)
-        with tf.variable_scope(self._train_network['scope_name']):
-            self._train_network['optimizer'] = opt
-            self._train_network['Op']['train'] = opt.minimize(self._train_network['loss'], name="TrainOp")
+        opt = optimizers[optimizer.lower()](learning_rate, name=optimizer, **kwargs)
+        with tf.variable_scope(self._predict_network['scope_name']):
+            self._predict_network['optimizer'] = opt
+            self._predict_network['train'] = opt.minimize(self._predict_network['loss'], name="TrainOp")
 
         # This also starts the session
         tf.summary.FileWriter('log', self.session.graph)
 
     def _create_operations(self):
-        train_op = self._train_network['Op']
-        train_q = self._train_network['q_values']
-        with tf.variable_scope(self._train_network['scope_name']):
+        predict = self._predict_network
+        with tf.name_scope(predict['scope_name']):
             train_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
-                                              scope=self._train_network['scope_name'])
-            train_op['max_q_values'] = tf.reduce_max(train_q, axis=1, name='MaxQValues')
-            train_op['best_actions'] = tf.argmax(train_q, axis=1, name='BestActions')
-            train_op['action_q_values'] = tf.reduce_sum(train_q * tf.one_hot(self.a_input, self.nb_actions),
-                                                        axis=1, name='ActionQValues')
-            self._train_network['loss'] = tf.losses.mean_squared_error(train_op['action_q_values'], self.train_target_q)
+                                              scope=self._predict_network['scope_name'])
+            predict['max_q_values'] = tf.reduce_max(predict['q_values'], axis=1, name='MaxQValues')
+            predict['best_actions'] = tf.argmax(predict['q_values'], axis=1, name='BestActions')
+            predict['action_q_values'] = tf.reduce_sum(predict['q_values'] * tf.one_hot(self.a_input, self.nb_actions),
+                                                       axis=1, name='ActionQValues')
+            self._predict_network['loss'] = mean_squared_error(predict['action_q_values'], self.train_target_q)
 
-        target_op = self._target_network['Op']
-        target_q = self._target_network['q_values']
+        target = self._target_network
         with tf.name_scope(self._target_network['scope_name']):
             target_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                scope=self._target_network['scope_name'])
-            target_op['max_q_values'] = tf.reduce_max(target_q, axis=1, name='MaxQValues')
-            target_op['action_q_values'] = tf.reduce_sum(target_q * tf.one_hot(self.a_input, self.nb_actions),
-                                                         axis=1, name='ActionQValues')
+            target['max_q_values'] = tf.reduce_max(target['q_values'], axis=1, name='MaxQValues')
+            target['action_q_values'] = tf.reduce_sum(target['q_values'] * tf.one_hot(self.a_input, self.nb_actions),
+                                                      axis=1, name='ActionQValues')
 
-        self.update_target_network = [tf.assign(w_train, w_target, validate_shape=True)
-                                      for w_train, w_target in zip(train_weights, target_weights)]
+        self.update_target_network = [tf.assign(w_target, w_train, validate_shape=True)
+                                      for w_target, w_train in zip(target_weights, train_weights)]
 
     def _build_network(self):
         """
