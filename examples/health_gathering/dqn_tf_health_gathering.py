@@ -19,7 +19,7 @@ from doom_rl.envs.env import DoomGrayEnv
 from doom_rl.memory import ListMemory
 from doom_rl.models.model import DqnTfModel
 from doom_rl.policy import EpsilonGreedyPolicy
-from doom_rl.utils import process_gray8_image, test_model
+from doom_rl.utils import process_gray8_image, test_model, train_model
 import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 from tensorflow.layers import conv2d, dense
@@ -55,20 +55,23 @@ memory_capacity = 20000
 learning_rate = 2.5e-4
 gamma = 0.95
 
-# Training epochs
 train_epochs = 80
-steps_per_epoch = 4000
+validate_epochs = 5
+test_epochs = 3
+train_epoch_steps = 4000
+train_visualize = False
+test_visualize = True
 
 # Epsilon greedy policy settings.
 max_eps = 0.8
 min_eps = 0.1
-decay_steps = train_epochs * steps_per_epoch
+decay_steps = train_epochs * train_epoch_steps
 
 # During warm up, the agent will not perform learning steps
 warm_up_steps = 4000
-train_visualize = False
-test_epochs = 3
-test_visualize = True
+
+# The number of steps before the target network is updated
+update_steps = 10000
 
 batch_size = 32
 
@@ -93,7 +96,7 @@ load_weights = False
 log_weights = True
 
 # Log the weights of agent's network after log_weights_epochs epochs
-log_weights_epochs = 5
+# log_weights_epochs = 5
 
 # All weights files are saved to "weight" folder
 if not os.path.isdir("weights"):
@@ -134,11 +137,6 @@ if __name__ == '__main__':
                      memory=ListMemory(memory_capacity),
                      actions=action_space)
 
-    # Expected sarsa
-    # agent = ESarsaAgent(model=model,
-    #                     memory=ListMemory(memory_capacity),
-    #                     actions=action_space)
-
     print("\n\nThe agent's action space has {} actions:".format(nb_actions))
     print(action_space, end="\n\n")
     if load_weights:
@@ -147,80 +145,18 @@ if __name__ == '__main__':
 
     # Start training
     if args.mode == 'train':
-        env.set_window_visible(train_visualize)
-        train_info = {"policy": EpsilonGreedyPolicy(max_eps, min_eps, total_decay_steps=decay_steps),
-                      "steps": 0,
-                      "start_time": time()}
-        for epoch in range(train_epochs):
-            print("\nEpoch {}".format(epoch + 1))
-            print("-" * 8)
-
-            s = env.reset()
-            epoch_metrics = {"played_episodes": 0,
-                             "rewards": [],
-                             "epsilons": [],
-                             "losses": [],
-                             "start_time": time()}
-
-            # Perform one training epoch
-            for learning_step in trange(steps_per_epoch, leave=False):
-                # Update the total training steps in this training epoch
-                train_info["steps"] += 1
-
-                # Record the value of the current epsilon
-                epoch_metrics["epsilons"].append(train_info["policy"].epsilon)
-
-                # Update the policy every 100 training steps
-                if train_info["steps"] % 100 == 0:
-                    train_info["policy"].update(train_info["steps"])
-
-                # Get the agent's action and its id
-                a = agent.get_action(s, policy=train_info["policy"])
-                a_id = agent.get_action_id(a)
-
-                # Take one step in the environment
-                s_, r, terminate, _ = env.step(a, frame_repeat=frame_repeat, reward_discount=True)
-
-                # Save this experience
-                agent.save_experience(s, a_id, r, s_, terminate)
-
-                # Update the current state
-                s = s_
-
-                if terminate:
-                    # Record the total amount of reward in this episode
-                    epoch_metrics["rewards"].append(env.episode_reward())
-
-                    # Update the number of episodes played in this training epoch
-                    epoch_metrics["played_episodes"] += 1
-
-                    # Reset the environment
-                    s = env.reset()
-
-                # Perform learning step if it is not warming up
-                if train_info["steps"] > warm_up_steps:
-                    loss = agent.learn_from_memory(batch_size)
-                    epoch_metrics["losses"].append(loss)
-
-            # Statistics
-            print("{} training episodes played.".format(epoch_metrics["played_episodes"]))
-            print("Agent's memory size: {}".format(agent.memory.size))
-            if len(epoch_metrics["losses"]) != 0:
-                print("mean loss: [{:.3f}±{:.3f}]".format(np.mean(epoch_metrics["losses"]),
-                                                          np.std(epoch_metrics["losses"])), end=' ')
-            print("mean epsilon: [{:.3f}]".format(np.mean(epoch_metrics["epsilons"])))
-
-            print("mean reward: [{:.2f}±{:.2f}]".format(np.mean(epoch_metrics["rewards"]),
-                                                        np.std(epoch_metrics["rewards"])), end=' ')
-            print("min: [{:.1f}] max:[{:.1f}]".format(np.min(epoch_metrics["rewards"]),
-                                                      np.max(epoch_metrics["rewards"])))
-            print("Episode training time: {:.2f} minutes, total training time: {:.2f} minutes.".format(
-                 (time() - epoch_metrics["start_time"]) / 60.0, (time() - train_info["start_time"]) / 60.0))
-
-            # Log the weights of the model
-            if log_weights and (epoch + 1) % log_weights_epochs == 0:
-                print("Saving the network weights to: ", weights_save_path)
-                agent.model.save_weights(weights_save_path)
+        train_model(env,
+                    agent,
+                    frame_repeat,
+                    batch_size,
+                    train_epochs=train_epochs,
+                    train_epoch_steps=train_epoch_steps,
+                    train_policy=EpsilonGreedyPolicy(max_eps, min_eps, total_decay_steps=decay_steps),
+                    validate_epochs=validate_epochs,
+                    weights_save_path=weights_save_path,
+                    warm_up_steps=warm_up_steps,
+                    train_visualize=train_visualize,
+                    train_verbose=True)
 
         # Training finished
         env.close()
