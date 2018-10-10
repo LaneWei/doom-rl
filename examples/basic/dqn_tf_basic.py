@@ -20,7 +20,7 @@ from doom_rl.envs.env import DoomGrayEnv
 from doom_rl.memory import ListMemory
 from doom_rl.models.tfmodels import SimpleTfModel
 from doom_rl.policy import EpsilonGreedyPolicy
-from doom_rl.utils import process_gray8_image
+from doom_rl.utils import process_gray8_image, test_model
 
 memory_capacity = 20000
 learning_rate = 2.5e-4
@@ -207,35 +207,8 @@ if __name__ == '__main__':
         agent.model.save_weights(weights_save_path)
 
     print('\nStart testing\n')
-    # Start testing
-    # The agent now follows greedy policy.
-    env.set_window_visible(test_visualize)
-    rewards = []
-    for episode in range(test_epochs):
-        print('Episode {}:'.format(episode+1))
-
-        s = env.reset()
-        terminate = False
-        while not terminate:
-            a = agent.get_action(s)
-            a_id = agent.get_action_id(a)
-            reward = 0
-            for _ in range(frame_repeat):
-                s, r, terminate, _ = env.step(a)
-                reward += r
-                if terminate:
-                    break
-                sleep(0.025)
-            print('q_values', agent.get_q_values(s), end=' ')
-            print('action: ', a_id + 1, ", ", a, end=' ')
-            print('reward: ', reward)
-
-        sleep(1.0)
-        reward = env.episode_reward()
-        rewards.append(reward)
-        print("Total reward: {}.".format(reward), end='\n\n')
-
-    print()
-    print("Testing finished, total {} episodes displayed.".format(test_epochs))
-    print("mean reward: {:.2f}±{:.2f} min: {:.1f} max:{:.1f}".format(
-        np.mean(rewards), np.std(rewards), np.min(rewards), np.max(rewards)))
+    test_model(env, agent, frame_repeat,
+               test_epochs=test_epochs,
+               test_visualize=test_visualize,
+               verbose=True,
+               spectator_mode=False)
