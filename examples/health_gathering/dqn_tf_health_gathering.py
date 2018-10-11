@@ -164,7 +164,7 @@ if __name__ == '__main__':
         train_info = {"policy": EpsilonGreedyPolicy(max_eps, min_eps, total_decay_steps=decay_steps),
                       "steps": 0,
                       "start_time": time()}
-        for epoch in range(235, train_epochs+235):
+        for epoch in range(train_epochs):
             print("\nEpoch {}".format(epoch + 1))
             print("-" * 8)
 
