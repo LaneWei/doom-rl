@@ -120,7 +120,7 @@ class DqnTfModel(Model):
         enable_ddqn: Enable double dqn.
     """
 
-    def __init__(self, state_shape, nb_actions, discount_factor, update_steps=10000, enable_ddqn=True, **kwargs):
+    def __init__(self, state_shape, nb_actions, discount_factor, update_steps=10000, enable_ddqn=False, **kwargs):
         super(DqnTfModel, self).__init__(**kwargs)
         self.state_shape = state_shape
         self.nb_actions = nb_actions
@@ -134,7 +134,10 @@ class DqnTfModel(Model):
         # Tensorflow session
         self._session = None
 
-        with tf.name_scope('Placeholder'):
+        # Summary filewriter
+        self.writer = tf.summary.FileWriter('log')
+
+        with tf.name_scope('Inputs'):
             # State input of the network, a placeholder in the computation graph
             self.s_input = tf.placeholder(tf.float32, shape=[None] + list(self.state_shape), name='In_State')
 
@@ -172,9 +175,6 @@ class DqnTfModel(Model):
             'max_q_values': None,
             'action_q_values': None,
         }
-
-        # summary
-        # ...
 
         self._model_created = False
 
@@ -239,8 +239,12 @@ class DqnTfModel(Model):
                                                            tf.one_hot(self.a_input, self.nb_actions),
                                                            axis=1, name='ActionQValues')
                 predict['loss'] = mean_squared_error(predict['action_q_values'], self.train_target_q)
-                predict['optimizer'] = opt
-                predict['train'] = opt.minimize(predict['loss'], name="TrainOp")
+
+                with tf.name_scope('Train'):
+                    predict['optimizer'] = opt
+                    predict['train'] = opt.minimize(predict['loss'],
+                                                    global_step=tf.train.get_or_create_global_step(),
+                                                    name="TrainOp")
 
             # Target network
             target = self._target_network
@@ -258,11 +262,10 @@ class DqnTfModel(Model):
                                               scope=self._predict_network['scope_name'])
             target_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                                scope=self._target_network['scope_name'])
-            with tf.name_scope('UpdateTarget'):
+            with tf.name_scope('Update'):
                 self.update_target_network = [tf.assign(w_target, w_train, validate_shape=True)
                                               for w_target, w_train in zip(target_weights, train_weights)]
-        # This also starts the session
-        tf.summary.FileWriter('log', self.session.graph)
+            self.session.run(self.update_target_network)
 
     def _build_network(self):
         """
@@ -283,7 +286,7 @@ class DqnTfModel(Model):
         if not self._model_created:
             raise RuntimeError('A model must be compiled before performing any operations.')
         if self._session is None:
-            self._session = tf.Session()
+            self._session = tf.get_default_session()
             self._session.run(tf.global_variables_initializer())
         return self._session
 

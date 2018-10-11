@@ -108,7 +108,6 @@ venv.bak/
 **/_vizdoom.ini
 
 # ignore weights files
-**/weights
-**/weights_bak
+**/weights*
 
-**/log
+**/log*
