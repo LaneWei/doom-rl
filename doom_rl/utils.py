@@ -104,6 +104,9 @@ def test_model(env,
             while not terminate:
                 a = agent.get_action(s, policy=test_policy)
                 a_id = agent.get_action_id(a)
+                if not spectator_mode:
+                    print('q_values', agent.get_q_values(s), end=' ')
+                    print('action: ', a_id + 1, ", ", a, end=' ')
                 reward = 0
                 for _ in range(frame_repeat):
                     s, r, terminate, _ = env.step(a)
@@ -111,9 +114,6 @@ def test_model(env,
                     if terminate:
                         break
                     sleep(0.015)
-                if not spectator_mode:
-                    print('q_values', agent.get_q_values(s), end=' ')
-                    print('action: ', a_id + 1, ", ", a, end=' ')
                 print('reward: ', reward)
 
             sleep(1.0)

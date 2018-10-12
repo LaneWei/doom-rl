@@ -2,6 +2,7 @@
 This directory contains configuration files and doom wad files that are used by doom-rl examples.
 
 ## Scenario description
+More scenarios at [VizDoom](https://github.com/mwydmuch/ViZDoom/tree/master/scenarios#scenarios--decription).
 
 ### basic.wad
 Only one monster is spawned randomly at the opposite wall.  
@@ -16,7 +17,7 @@ Only one shot is needed to kill this monster.
 
 **Rewards**
 - **+106** on killing the monster
-- every attack: **-5**
+- **-5** for every attack
 
 ### basic.hard.wad
 One monster is spawned at a time randomly at the opposite wall. After a monster is killed, another monster 
@@ -32,7 +33,7 @@ Only one shot is needed to kill the monsters.
 
 **Rewards**
 - **+110** on killing a monster
-- every attack: **-10**
+- **-10** for every attack
 
 ### health_gathering.wad
 The floor is acid and hurts the agent periodically.  
@@ -65,6 +66,6 @@ After picking up an item, the same item will be generated randomly.
 - on timeout
 
 **Rewards**
-- **+105** on picking up a medikit (+20 health)
-- **-105** on picking up a poison (-20 health)
-- **+55** on picking up a small medikit (+10 health)
+- **+105** when the agent picks up a medikit (+20 health)
+- **-105** when the agent picks up a poison (-20 health)
+- **+55** when the agent picks up a small medikit (+10 health)
