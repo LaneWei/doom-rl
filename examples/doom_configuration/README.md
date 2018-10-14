@@ -16,7 +16,7 @@ Only one shot is needed to kill this monster.
 - on timeout
 
 **Rewards**
-- **+106** on killing the monster
+- **+100** on killing the monster
 - **-5** for every attack
 
 ### basic.hard.wad
@@ -32,8 +32,8 @@ Only one shot is needed to kill the monsters.
 - on timeout
 
 **Rewards**
-- **+110** on killing a monster
-- **-10** for every attack
+- **+100** on killing a monster
+- **-5** for every attack
 
 ### health_gathering.wad
 The floor is acid and hurts the agent periodically.  
@@ -49,7 +49,7 @@ will be generated randomly.
 - on timeout
 
 **Rewards**
-- **+120** on picking up a medikit (+20 health)
+- **+100** on picking up a medikit (+20 health)
 
 ### health_gathering_hard.wad
 The floor is acid and hurts the agent periodically.  
@@ -66,6 +66,6 @@ After picking up an item, the same item will be generated randomly.
 - on timeout
 
 **Rewards**
-- **+105** when the agent picks up a medikit (+20 health)
-- **-105** when the agent picks up a poison (-20 health)
-- **+55** when the agent picks up a small medikit (+10 health)
+- **+100** when the agent picks up a medikit (+20 health)
+- **-100** when the agent picks up a poison (-20 health)
+- **+50** when the agent picks up a small medikit (+10 health)
