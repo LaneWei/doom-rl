@@ -19,7 +19,7 @@ Only one shot is needed to kill this monster.
 - **+100** on killing the monster
 - **-5** for every attack
 
-### basic.hard.wad
+### basic_hard.wad
 One monster is spawned at a time randomly at the opposite wall. After a monster is killed, another monster 
 will be spawned randomly.  
 Only one shot is needed to kill the monsters.
